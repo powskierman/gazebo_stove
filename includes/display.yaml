@@ -1,0 +1,29 @@
+# ============================================================================
+# NEXTION DISPLAY INTEGRATION
+# ============================================================================
+# UART configuration and Nextion display component
+
+# ============================================================================
+# UART CONFIGURATION - Nextion Display (GPIO16/17)
+# ============================================================================
+
+uart:
+  - id: uart_nextion
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+    debug:
+      direction: BOTH
+      dummy_receiver: false
+
+# ============================================================================
+# NEXTION DISPLAY COMPONENT
+# ============================================================================
+
+display:
+  - platform: nextion
+    uart_id: uart_nextion
+    id: gazebo_nextion
+    lambda: |-
+      // Placeholder lambda - display updates via send_command_printf
+      ESP_LOGD("NEXTION", "Display lambda executed");

@@ -1,0 +1,59 @@
+# ============================================================================
+# GAZEBO STOVE ESPHOME CONFIGURATION
+# ============================================================================
+# Modular configuration with includes for better maintainability
+#
+# Hardware: esp32doit-devkit-v1 (development) / Custom ESP32 WROOM (production)
+# Features: Thermostat, relay control, Nextion display, weather integration
+# Date: 2025-11-10
+#
+# Module Structure:
+#   - core.yaml: Board, WiFi, API, OTA, NTP
+#   - hardware.yaml: GPIO, relays, LEDs, one-wire
+#   - sensors.yaml: Temperature, WiFi signal
+#   - entities.yaml: Numbers, selects, binary sensors, text sensors
+#   - automation.yaml: Scripts and heating logic
+#   - display.yaml: Nextion UART and display
+#   - buttons.yaml: Restart and shutdown controls
+
+# ============================================================================
+# CORE CONFIGURATION
+# ============================================================================
+
+<<: !include includes/core.yaml
+
+# ============================================================================
+# HARDWARE CONFIGURATION
+# ============================================================================
+
+<<: !include includes/hardware.yaml
+
+# ============================================================================
+# SENSORS & MEASUREMENTS
+# ============================================================================
+
+<<: !include includes/sensors.yaml
+
+# ============================================================================
+# USER ENTITIES
+# ============================================================================
+
+<<: !include includes/entities.yaml
+
+# ============================================================================
+# AUTOMATION & LOGIC
+# ============================================================================
+
+<<: !include includes/automation.yaml
+
+# ============================================================================
+# DISPLAY INTEGRATION
+# ============================================================================
+
+<<: !include includes/display.yaml
+
+# ============================================================================
+# BUTTONS & CONTROLS
+# ============================================================================
+
+<<: !include includes/buttons.yaml

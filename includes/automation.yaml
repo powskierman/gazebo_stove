@@ -1,0 +1,72 @@
+# ============================================================================
+# AUTOMATION & CONTROL LOGIC
+# ============================================================================
+# Scripts for heating control, display initialization, and system management
+
+script:
+  # Initialize Nextion display on boot
+  - id: init_nextion
+    then:
+      - logger.log: "Initializing Nextion display..."
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed() == false) {
+            id(gazebo_nextion).send_command("cls 0x0000");
+            ESP_LOGI("NEXTION_INIT", "Display cleared");
+
+            // Update Page 0 with initial values
+            id(gazebo_nextion).send_command_printf("temp.val=%d", (int)id(gazebo_temp).state);
+            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)id(gazebo_temp).state);
+            id(gazebo_nextion).send_command_printf("n1.val=%d", (int)id(desired_temp).state);
+
+            ESP_LOGI("NEXTION_INIT", "Display initialization complete");
+          } else {
+            ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
+          }
+
+  # Manage heating with hysteresis control based on desired_temp
+  - id: manage_heating
+    then:
+      - lambda: |-
+          float current_temp = id(gazebo_temp).state;
+          float desired = id(desired_temp).state;
+          float hysteresis = id(heating_hysteresis).state;
+          bool away_mode = (id(presence_mode).state == "away");
+
+          ESP_LOGD("HEATING", "Current: %.1f°C, Desired: %.1f°C, Hysteresis: %.1f°C, Away: %s",
+                   current_temp, desired, hysteresis, away_mode ? "true" : "false");
+
+          if (away_mode) {
+            // In away mode, always off
+            if (id(relay).state) {
+              id(relay).turn_off();
+              ESP_LOGI("HEATING", "Away mode: Relay OFF");
+            }
+          } else {
+            // Normal heating mode with hysteresis
+            float lower_threshold = desired - hysteresis/2.0;
+            float upper_threshold = desired + hysteresis/2.0;
+
+            ESP_LOGD("HEATING", "Thresholds: Lower=%.1f, Upper=%.1f, Current=%.1f, Relay=%s",
+                     lower_threshold, upper_threshold, current_temp,
+                     id(relay).state ? "ON" : "OFF");
+
+            if (current_temp < lower_threshold) {
+              // Temperature below setpoint - start heating
+              if (!id(relay).state) {
+                id(relay).turn_on();
+                ESP_LOGI("HEATING", "Start heating: %.1f°C < %.1f°C", current_temp, lower_threshold);
+              }
+            } else if (current_temp > upper_threshold) {
+              // Temperature above setpoint + hysteresis - stop heating
+              if (id(relay).state) {
+                id(relay).turn_off();
+                ESP_LOGI("HEATING", "Stop heating: %.1f°C > %.1f°C", current_temp, upper_threshold);
+              } else {
+                ESP_LOGD("HEATING", "Relay already OFF (%.1f > %.1f)", current_temp, upper_threshold);
+              }
+            } else {
+              // Within deadband - maintain current state
+              ESP_LOGD("HEATING", "In deadband: %.1f-%.1f, Relay=%s (no change)",
+                       lower_threshold, upper_threshold, id(relay).state ? "ON" : "OFF");
+            }
+          }

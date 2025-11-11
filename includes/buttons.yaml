@@ -1,0 +1,22 @@
+# ============================================================================
+# BUTTONS - Manual Controls & Actions
+# ============================================================================
+# Device control buttons for restart and safe shutdown
+
+button:
+  # Manual restart button
+  - platform: restart
+    name: "Device Restart"
+    id: restart_button
+    entity_category: "diagnostic"
+
+  # Safe shutdown button (for maintenance)
+  - platform: template
+    name: "Safe Shutdown"
+    id: shutdown_button
+    on_press:
+      then:
+        - switch.turn_off: relay
+        - logger.log: "Safe shutdown: Relay deactivated"
+        - delay: 1s
+        - button.press: restart_button

@@ -1,0 +1,296 @@
+# GazeboWx Nextion Display - Minimal Test Configuration
+# Purpose: Verify UART communication and basic display functionality
+# Test: Cycle temperature value (temp) from 0→50→0 at 1-second intervals
+# Phase: Phase 1 Hardware Verification
+
+esphome:
+  name: gazebo-wx-test
+  friendly_name: Gazebo WX Test
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "GazeboWx Nextion Test Starting"
+      - wait_until:
+          condition:
+            lambda: 'return id(uart_nextion).is_failed() == false;'
+          timeout: 5s
+      - logger.log: "UART Connected to Nextion"
+      - script.execute: cycle_temperature
+
+esp32:
+  board: wemos_d1_mini32
+
+logger:
+  level: DEBUG
+  logs:
+    uart.debug: DEBUG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gazebo-WX-Test Fallback"
+    password: "gazebo1234"
+
+api:
+
+ota:
+  - platform: esphome
+
+# UART Communication: Nextion Display
+uart:
+  - id: uart_nextion
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+
+# Display Component
+display:
+  - platform: nextion
+    uart_id: uart_nextion
+    id: gazebo_nextion
+    lambda: |-
+      // Placeholder - updates via send_command_printf
+
+# Global variable to track current temperature value
+globals:
+  - id: test_temp_value
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  - id: test_direction
+    type: int
+    restore_value: no
+    initial_value: '1'  # 1 = increment, -1 = decrement
+
+# Test sensor - simulates temperature cycling
+sensor:
+  - platform: template
+    id: test_temperature
+    name: "Test Temperature"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 0
+    update_interval: 1s
+    lambda: |-
+      // Return current test value
+      return id(test_temp_value);
+    on_value:
+      then:
+        - lambda: |-
+            // Log the temperature update
+            ESP_LOGI("NEXTION_TEST", "Updating temp to: %d°C", (int)x);
+        # Update Nextion display - Page 0, component 'temp'
+        - lambda: |-
+            id(gazebo_nextion).send_command_printf("temp.val=%d", (int)x);
+            ESP_LOGI("NEXTION_TEST", "UART Command Sent: temp.val=%d", (int)x);
+
+# Script to cycle temperature 0→50→0 at 1-second intervals
+script:
+  - id: cycle_temperature
+    then:
+      - logger.log: "Starting temperature cycle script"
+      # Cycle from 0 to 50
+      - repeat:
+          count: 51  # 0 to 50 = 51 values
+          then:
+            - globals.set:
+                id: test_temp_value
+                value: !lambda 'return id(cycle_temperature).iteration;'
+            - logger.log:
+                format: "Cycle iteration: %d, Value: %d"
+                args: ['id(cycle_temperature).iteration', 'id(test_temp_value)']
+            - component.update: test_temperature
+            - delay: 1s
+
+      # Cycle from 49 down to 1 (skip 0 to avoid duplicate)
+      - repeat:
+          count: 49  # 49 down to 1
+          then:
+            - globals.set:
+                id: test_temp_value
+                value: !lambda 'return 50 - id(cycle_temperature).iteration;'
+            - logger.log:
+                format: "Cycle iteration: %d, Value: %d (descending)"
+                args: ['id(cycle_temperature).iteration', 'id(test_temp_value)']
+            - component.update: test_temperature
+            - delay: 1s
+
+      # Loop back to start
+      - logger.log: "Temperature cycle complete, restarting..."
+      - script.execute: cycle_temperature
+
+# Manual button to restart test (optional)
+button:
+  - platform: template
+    name: "Restart Temperature Test"
+    on_press:
+      then:
+        - logger.log: "Restarting temperature test"
+        - script.execute: cycle_temperature
+
+# Status LED (optional) - toggles with each update
+output:
+  - platform: gpio
+    id: status_led
+    pin: GPIO2  # Optional LED pin (adjust if needed)
+
+light:
+  - platform: binary
+    name: "Status LED"
+    output: status_led
+    on_turn_on:
+      then:
+        - delay: 100ms
+        - light.turn_off: Status LED
+
+---
+
+# TEST PROCEDURES
+
+## Expected Behavior
+
+1. **Boot Sequence**:
+   - ESPHome starts and connects to WiFi
+   - UART connects to Nextion display
+   - Message: "UART Connected to Nextion"
+   - Script begins: "Starting temperature cycle script"
+
+2. **Temperature Cycle** (First iteration):
+   - Iteration 0: temp = 0°C
+   - Iteration 1: temp = 1°C
+   - Iteration 2: temp = 2°C
+   - ... (continues every 1 second)
+   - Iteration 50: temp = 50°C
+   - Then counts back down: 49°C → 1°C
+   - Restart at 0°C and repeat indefinitely
+
+3. **UART Communication**:
+   - Each update sends: `temp.val=XX[0xFF][0xFF][0xFF]`
+   - Example: `temp.val=22` followed by 3 termination bytes
+   - Latency: Should be immediate (<100ms)
+
+4. **Display Behavior**:
+   - Nextion Page 0 shows temperature counting up 0→50
+   - Then counts down 49→1
+   - Then repeats
+   - Update frequency: Exactly 1 second per step
+
+## Log Output Examples
+
+```
+[00:00:00][I][NEXTION_TEST]: GazeboWx Nextion Test Starting
+[00:00:02][I][NEXTION_TEST]: UART Connected to Nextion
+[00:00:02][I][NEXTION_TEST]: Starting temperature cycle script
+[00:00:03][I][NEXTION_TEST]: Cycle iteration: 0, Value: 0
+[00:00:03][I][NEXTION_TEST]: Updating temp to: 0°C
+[00:00:03][I][NEXTION_TEST]: UART Command Sent: temp.val=0
+[00:00:04][I][NEXTION_TEST]: Cycle iteration: 1, Value: 1
+[00:00:04][I][NEXTION_TEST]: Updating temp to: 1°C
+[00:00:04][I][NEXTION_TEST]: UART Command Sent: temp.val=1
+...
+[00:00:53][I][NEXTION_TEST]: Cycle iteration: 50, Value: 50
+[00:00:53][I][NEXTION_TEST]: Updating temp to: 50°C
+[00:00:53][I][NEXTION_TEST]: UART Command Sent: temp.val=50
+[00:00:54][I][NEXTION_TEST]: Cycle iteration: 1, Value: 49 (descending)
+[00:00:54][I][NEXTION_TEST]: Updating temp to: 49°C
+[00:00:54][I][NEXTION_TEST]: UART Command Sent: temp.val=49
+...
+[01:41:03][I][NEXTION_TEST]: Temperature cycle complete, restarting...
+```
+
+## What to Verify
+
+### ✅ Test Success Criteria
+
+1. **UART Connection**:
+   - [ ] Log shows "UART Connected to Nextion"
+   - [ ] No UART errors in logs
+   - [ ] Nextion display shows no errors/corruption
+
+2. **Temperature Display**:
+   - [ ] Display shows correct temperature values (0→50→0)
+   - [ ] Display updates exactly every 1 second
+   - [ ] No missing values or jumps
+   - [ ] Values match log output
+
+3. **Update Timing**:
+   - [ ] Each step takes exactly 1 second (±100ms)
+   - [ ] Full cycle (0→50→1→0) = ~100 seconds
+   - [ ] Repeats indefinitely without drift
+
+4. **Data Accuracy**:
+   - [ ] Values increment by exactly 1
+   - [ ] No glitches, skips, or duplicates
+   - [ ] Descending phase counts down correctly
+
+### ⚠️ Common Issues & Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "UART Connection Failed" | Wrong GPIO pins or baud rate | Check GPIO16 (RX), GPIO17 (TX), verify 9600 baud |
+| Display shows "888" | Nextion not receiving updates | Verify UART termination bytes (0xFF 0xFF 0xFF) |
+| Display freezes | UART buffer overflow | Reduce command frequency or increase UART buffer |
+| Values don't match logs | UART corruption | Check cable quality, shielding, and signal integrity |
+| Timing is off | CPU overload or WiFi interference | Reduce other tasks or move away from WiFi source |
+| Display garbled | Baud rate mismatch | Verify Nextion is set to 9600 baud |
+
+## How to Run This Test
+
+### Compilation
+```bash
+esphome compile NEXTION_TEST.yaml
+```
+
+### Flashing to Device
+```bash
+esphome upload NEXTION_TEST.yaml
+```
+
+### Monitoring
+```bash
+esphome logs NEXTION_TEST.yaml
+```
+
+### Manual Restart (if needed)
+- Press "Restart Temperature Test" button in Home Assistant
+- Or restart device: `esphome run NEXTION_TEST.yaml`
+
+## Next Steps After Test Passes
+
+Once this test verifies UART communication and display updates work correctly:
+
+1. **Add DS18B20 Sensor** (actual temperature instead of simulated)
+2. **Add Real-time Updates** (replace test loop with sensor readings)
+3. **Add Additional Display Components** (precip, weather icon, etc.)
+4. **Integrate with Thermostat** (Phase 2)
+5. **Add Remaining Pages** (Page 1-3, Phase 6)
+
+## Safety Notes
+
+- This test runs indefinitely - it will cycle temperature values continuously
+- No heating/cooling relay is activated (test only affects display)
+- Safe to run 24/7 for extended testing
+- No data is persisted (test values cleared on reboot)
+
+## Test Duration
+
+- Single cycle: ~100 seconds (0→50 ascending + 49→1 descending)
+- Minimum recommended test duration: 10-15 minutes (10-15 complete cycles)
+- Suggested test duration: 1+ hours (60+ cycles for stability verification)
+
+---
+
+## Document Information
+
+**File**: NEXTION_TEST.yaml
+**Version**: 1.0.0
+**Purpose**: Phase 1 Hardware Verification - UART & Display Communication Test
+**Date**: 2025-11-10
+**Status**: Ready to Use
+
+**Related Files**:
+- NEXTION_DISPLAY.md (Complete display integration guide)
+- PLAN.md (Phase 1 implementation details)
+
+**Next Test**: Add DS18B20 sensor for real temperature readings

@@ -1,0 +1,159 @@
+# ============================================================================
+# ENTITIES - User Configuration & Status
+# ============================================================================
+# Number sliders, select dropdowns, binary sensors, and text sensors
+
+# ============================================================================
+# BINARY SENSORS - Status & Alarms
+# ============================================================================
+
+binary_sensor:
+  # Sensor Malfunction Alarm
+  - platform: template
+    name: "Sensor Malfunction"
+    id: sensor_malfunction
+    icon: "mdi:alert-circle"
+    device_class: problem
+    lambda: |-
+      return id(bad_read_count) > 10;
+
+# ============================================================================
+# NUMBER ENTITIES - User Configuration
+# ============================================================================
+
+number:
+  # Desired Temperature Setpoint
+  - platform: template
+    name: "Desired Temperature"
+    id: desired_temp
+    min_value: 5
+    max_value: 35
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    restore_value: yes
+    initial_value: 22
+    optimistic: true
+    set_action:
+      then:
+        - logger.log:
+            format: "Desired temperature set to %.1f°C"
+            args: ["x"]
+        # Update Nextion display if available
+        - lambda: |-
+            if (id(gazebo_nextion).is_failed() == false) {
+              id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
+            }
+        # Small delay to allow state to sync
+        - delay: 50ms
+        # Re-evaluate heating with new setpoint
+        - script.execute: manage_heating
+
+  # Temperature Offset (Calibration)
+  - platform: template
+    name: "Temperature Offset"
+    id: temp_offset
+    min_value: -5
+    max_value: 5
+    step: 0.1
+    unit_of_measurement: "°C"
+    icon: "mdi:plus-minus"
+    restore_value: yes
+    initial_value: 0
+    set_action:
+      then:
+        - logger.log:
+            format: "Temperature offset set to %.1f°C"
+            args: ["x"]
+
+  # Heating Hysteresis (deadband for stove control)
+  - platform: template
+    name: "Heating Hysteresis"
+    id: heating_hysteresis
+    min_value: 1
+    max_value: 5
+    step: 0.5
+    unit_of_measurement: "°C"
+    icon: "mdi:fire"
+    restore_value: yes
+    initial_value: 2
+    set_action:
+      then:
+        - logger.log:
+            format: "Heating hysteresis set to %.1f°C"
+            args: ["x"]
+
+# ============================================================================
+# SELECT ENTITIES - Mode Selection
+# ============================================================================
+
+select:
+  # Presence Mode
+  - platform: template
+    name: "Presence Mode"
+    id: presence_mode
+    options:
+      - "home"
+      - "away"
+    initial_option: "home"
+    restore_value: yes
+    set_action:
+      then:
+        - logger.log:
+            format: "Presence mode set to: %s"
+            args: ["x.c_str()"]
+        # Re-evaluate heating when presence changes
+        - script.execute: manage_heating
+
+# ============================================================================
+# TEXT SENSORS - Status Messages & Information
+# ============================================================================
+
+text_sensor:
+  # WiFi Information
+  - platform: wifi_info
+    ip_address:
+      name: "Device IP Address"
+      id: device_ip
+      entity_category: "diagnostic"
+    ssid:
+      name: "WiFi SSID"
+      id: wifi_ssid
+      entity_category: "diagnostic"
+    mac_address:
+      name: "MAC Address"
+      entity_category: "diagnostic"
+    bssid:
+      name: "WiFi BSSID"
+      entity_category: "diagnostic"
+
+  # System Status Message
+  - platform: template
+    name: "System Status"
+    id: system_status
+    update_interval: 10s
+    lambda: |-
+      if (id(sensor_malfunction).state) {
+        return std::string("ALARM: Sensor Malfunction");
+      } else if (!id(gazebo_nextion).is_failed()) {
+        return std::string("OK - Nextion Connected");
+      } else {
+        return std::string("OK - Display Offline");
+      }
+
+# ============================================================================
+# GLOBAL VARIABLES - Internal State Tracking
+# ============================================================================
+
+globals:
+  # Bad temperature read counter
+  - id: bad_read_count
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+  # Manual run timeout timestamp
+  - id: manual_run_timeout
+    type: long
+    restore_value: no
+    initial_value: '0'

@@ -1,0 +1,49 @@
+# ============================================================================
+# HARDWARE CONFIGURATION
+# ============================================================================
+# GPIO pins, output drivers, relays, LEDs, one-wire bus
+
+# ============================================================================
+# ONE-WIRE BUS CONFIGURATION (GPIO4) - DS18B20 Temperature Sensor
+# ============================================================================
+
+one_wire:
+  - platform: gpio
+    id: ow_bus
+    pin: GPIO4
+
+# ============================================================================
+# GPIO OUTPUT - Status LED (GPIO2)
+# ============================================================================
+
+output:
+  - platform: gpio
+    id: status_led
+    pin: GPIO2
+    inverted: true
+
+light:
+  - platform: binary
+    name: "Status LED"
+    output: status_led
+    id: status_light
+
+# ============================================================================
+# RELAY CONTROL (GPIO12) - Propane Stove Heating Element
+# ============================================================================
+
+switch:
+  - platform: gpio
+    name: "Propane Stove Relay"
+    id: relay
+    pin: GPIO12
+    restore_mode: ALWAYS_OFF
+    icon: "mdi:fire"
+    on_turn_on:
+      then:
+        - logger.log: "Relay turned ON - Stove heating"
+        - light.turn_on: status_light
+    on_turn_off:
+      then:
+        - logger.log: "Relay turned OFF - Stove idle"
+        - light.turn_off: status_light

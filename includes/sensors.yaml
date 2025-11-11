@@ -1,0 +1,62 @@
+# ============================================================================
+# SENSORS & MEASUREMENTS
+# ============================================================================
+# Temperature sensor (DS18B20), WiFi signal strength, and sensor diagnostics
+
+sensor:
+  # DS18B20 Temperature Sensor
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    id: gazebo_temp
+    name: "Gazebo Temperature"
+    address: 0x7ce066bd0164ff28
+    resolution: 12
+    update_interval: 10s
+    filters:
+      # 10-second moving average to smooth readings
+      - throttle_average: 10s
+      # Apply temperature offset/calibration
+      - lambda: |-
+          return x + id(temp_offset).state;
+      # Clamp to valid range (-40°C to 85°C)
+      - clamp:
+          min_value: -40
+          max_value: 85
+      # Rate limiting: max ±1°C change per reading
+      - delta: 1.0
+
+    # Bad read detection and heating control
+    on_value:
+      then:
+        - lambda: |-
+            if (isnan(x)) {
+              id(bad_read_count) += 1;
+              ESP_LOGI("TEMP_SENSOR", "Bad temperature read #%d", id(bad_read_count));
+              if (id(bad_read_count) > 10) {
+                id(sensor_malfunction).publish_state(true);
+                ESP_LOGI("TEMP_SENSOR", "ALARM: Sensor malfunction detected!");
+              }
+            } else {
+              if (id(bad_read_count) > 0) {
+                ESP_LOGI("TEMP_SENSOR", "Sensor recovered - resetting bad read counter");
+              }
+              id(bad_read_count) = 0;
+              if (id(sensor_malfunction).state) {
+                id(sensor_malfunction).publish_state(false);
+              }
+            }
+        # Call heating control script on valid temperature reading
+        - if:
+            condition:
+              - lambda: |-
+                  return !isnan(x) && !id(sensor_malfunction).state;
+            then:
+              - script.execute: manage_heating
+
+  # WiFi Signal Strength
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    id: wifi_signal_strength
+    update_interval: 60s
+    unit_of_measurement: "dBm"
+    entity_category: "diagnostic"
