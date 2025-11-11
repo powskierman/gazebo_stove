@@ -466,9 +466,11 @@ The firmware is stable, resource-efficient, and ready to manage heating with con
 - **Documentation Lines Added**: 1,700+
 - **New Features**: 3 (Presence Mode, Manual Run, Manual Stop)
 - **Safety Features**: 5 (default OFF, highest priority away mode, timeout, indefinite stop, no conflicts)
-- **Commits**: 2 (implementation + user guide)
+- **Commits**: 3 (implementation + user guide + summary)
 - **Test Scenarios**: 7 (all passed)
 - **Status**: ✅ Production Ready
+
+**Important Clarification**: All manual overrides (Manual Run and Manual Stop) are **OFF by default**. They must be **explicitly enabled by the user** - the system will never activate them automatically.
 
 ---
 
