@@ -35,7 +35,7 @@
 <<: !include includes/sensors.yaml
 
 # ============================================================================
-# USER ENTITIES
+# USER ENTITIES & SWITCHES
 # ============================================================================
 
 <<: !include includes/entities.yaml
