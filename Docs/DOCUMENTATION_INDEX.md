@@ -201,6 +201,12 @@
 
 ## Special References
 
+### **GazeboWx Reference Project**
+**Location**: `/Volumes/Users/Michel/Documents/Electronics/Projects/Gazebo/GazeboWx/`
+**Purpose**: Reference implementation and source code
+**Contains**: Original Arduino/Blynk implementation, related code and documentation
+**Use**: Reference for understanding original implementation, comparing features, or extracting code patterns
+
 ### **DOCUMENTATION_INDEX.md** (This File)
 **Location**: `/DOCUMENTATION_INDEX.md`
 **Purpose**: Index of all documentation files

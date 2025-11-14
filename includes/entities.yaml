@@ -108,53 +108,8 @@ select:
 # ============================================================================
 # SWITCH ENTITIES - Manual Overrides
 # ============================================================================
-
-switch:
-  # Manual Run Override (Emergency heating for 15 minutes)
-  - platform: template
-    name: "Manual Run"
-    id: manual_run
-    icon: "mdi:fire-alert"
-    restore_mode: ALWAYS_OFF
-    assumption_state: off
-    turn_on_action:
-      then:
-        - logger.log: "Manual Run enabled - 15 minute emergency heating"
-        - lambda: |-
-            id(manual_run_timeout) = millis();
-            id(manual_run_active) = true;
-            id(relay).turn_on();
-            ESP_LOGI("MANUAL_RUN", "Activated - Relay ON (15-min timer started)");
-        - script.execute: update_relay_state
-    turn_off_action:
-      then:
-        - logger.log: "Manual Run disabled"
-        - lambda: |-
-            id(manual_run_timeout) = 0;
-            id(manual_run_active) = false;
-        - script.execute: manage_heating
-
-  # Manual Stop Override (Force heating off indefinitely)
-  - platform: template
-    name: "Manual Stop"
-    id: manual_stop
-    icon: "mdi:power-off"
-    restore_mode: ALWAYS_OFF
-    assumption_state: off
-    turn_on_action:
-      then:
-        - logger.log: "Manual Stop enabled - Heating disabled"
-        - lambda: |-
-            id(manual_stop_active) = true;
-            id(relay).turn_off();
-            ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
-        - script.execute: update_relay_state
-    turn_off_action:
-      then:
-        - logger.log: "Manual Stop disabled - Restoring normal control"
-        - lambda: |-
-            id(manual_stop_active) = false;
-        - script.execute: manage_heating
+# Note: Manual Run and Manual Stop switches are now defined in hardware.yaml
+# This prevents YAML section conflicts when merging multiple includes
 
 # ============================================================================
 # TEXT SENSORS - Status Messages & Information

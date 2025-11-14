@@ -1,0 +1,22 @@
+# ============================================================================
+# HOME ASSISTANT THERMOSTAT CARD CONFIGURATION
+# ============================================================================
+# Lovelace card YAML for the Propane Stove Thermostat
+# 
+# Usage: Add this as a card in your Lovelace dashboard
+# 
+# IMPORTANT: After uploading ESPHome config, verify the entity exists:
+# 1. Go to Settings > Devices & Services > ESPHome
+# 2. Find your "gazebo-stove" device
+# 3. Check the entities list for "Propane Stove Thermostat"
+# 4. The entity ID will be shown there (likely: climate.propane_stove_thermostat)
+# 
+# If entity doesn't exist:
+# - Make sure you've uploaded the new ESPHome configuration
+# - Check that the device is online and connected
+# - Restart Home Assistant if needed
+# ============================================================================
+
+type: thermostat
+entity: climate.gazebo_stove_propane_stove_thermostat
+

@@ -5,6 +5,7 @@
 This project documents the comprehensive analysis and planning for converting the GazeboWx Arduino/Blynk heating and weather control system to ESPHome + Home Assistant. The analysis phase is complete and ready for implementation.
 
 **Source Project**: `/Volumes/Docs/Electronics/Projects/NH/GazeboWx` (Arduino/PlatformIO)
+**Reference Project**: `/Volumes/Users/Michel/Documents/Electronics/Projects/Gazebo/GazeboWx` (Reference implementation)
 **Target Platform**: ESPHome + Home Assistant (Local-first IoT)
 **Analysis Date**: 2025-11-10
 **Status**: ✅ Analysis Complete - Ready for Implementation Review
@@ -320,6 +321,9 @@ Milestones:
 
 Original Arduino source retained in version control at:
 `/Volumes/Docs/Electronics/Projects/NH/GazeboWx/` (PlatformIO)
+
+Reference project location:
+`/Volumes/Users/Michel/Documents/Electronics/Projects/Gazebo/GazeboWx/`
 
 ---
 

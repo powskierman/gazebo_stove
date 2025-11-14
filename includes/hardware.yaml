@@ -31,8 +31,11 @@ light:
 # ============================================================================
 # RELAY CONTROL (GPIO12) - Propane Stove Heating Element
 # ============================================================================
+# Note: Template switches (Manual Run, Manual Stop) are defined in entities.yaml
+# Both are combined into a single 'switch:' section in the final config
 
 switch:
+  # GPIO Relay for heating element
   - platform: gpio
     name: "Propane Stove Relay"
     id: relay
@@ -47,3 +50,69 @@ switch:
       then:
         - logger.log: "Relay turned OFF - Stove idle"
         - light.turn_off: status_light
+
+  # Manual Run Override (Emergency heating for 15 minutes)
+  - platform: template
+    name: "Manual Run"
+    id: manual_run
+    icon: "mdi:fire-alert"
+    restore_mode: ALWAYS_OFF
+    assumed_state: false
+    lambda: |-
+      // Switch state is controlled by manual_run_active global variable
+      return id(manual_run_active);
+    turn_on_action:
+      then:
+        - logger.log: "Manual Run enabled - 15 minute emergency heating"
+        - lambda: |-
+            id(manual_run_timeout) = millis();
+            id(manual_run_active) = true;
+            // Deactivate Manual Stop (mutually exclusive)
+            if (id(manual_stop_active)) {
+              ESP_LOGI("MANUAL_RUN", "Deactivating Manual Stop (mutually exclusive)");
+              id(manual_stop_active) = false;
+              id(manual_stop).publish_state(false);
+            }
+            ESP_LOGI("MANUAL_RUN", "Activated - 15-min timer started at %lu ms", id(manual_run_timeout));
+            // Update switch state to reflect the change
+            id(manual_run).publish_state(true);
+        - script.execute: manage_heating
+    turn_off_action:
+      then:
+        - logger.log: "Manual Run disabled"
+        - lambda: |-
+            id(manual_run_timeout) = 0;
+            id(manual_run_active) = false;
+            ESP_LOGI("MANUAL_RUN", "Deactivated by user");
+            // Update switch state to reflect the change
+            id(manual_run).publish_state(false);
+        - script.execute: manage_heating
+
+  # Manual Stop Override (Force heating off indefinitely)
+  - platform: template
+    name: "Manual Stop"
+    id: manual_stop
+    icon: "mdi:power-off"
+    restore_mode: ALWAYS_OFF
+    assumed_state: false
+    turn_on_action:
+      then:
+        - logger.log: "Manual Stop enabled - Heating disabled"
+        - lambda: |-
+            id(manual_stop_active) = true;
+            // Deactivate Manual Run (mutually exclusive)
+            if (id(manual_run_active)) {
+              ESP_LOGI("MANUAL_STOP", "Deactivating Manual Run (mutually exclusive)");
+              id(manual_run_active) = false;
+              id(manual_run_timeout) = 0;
+              id(manual_run).publish_state(false);
+            }
+            id(relay).turn_off();
+            ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
+        - script.execute: update_relay_state
+    turn_off_action:
+      then:
+        - logger.log: "Manual Stop disabled - Restoring normal control"
+        - lambda: |-
+            id(manual_stop_active) = false;
+        - script.execute: manage_heating
