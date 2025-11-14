@@ -36,14 +36,6 @@
 <<: !include includes/sensors.yaml
 
 # ============================================================================
-# CLIMATE (THERMOSTAT) COMPONENT
-# ============================================================================
-# ESPHome thermostat for Home Assistant integration
-# Works in conjunction with manage_heating script for priority-based control
-
-<<: !include includes/climate.yaml
-
-# ============================================================================
 # USER ENTITIES & SWITCHES
 # ============================================================================
 # Number sliders, select dropdowns, binary sensors, and text sensors
