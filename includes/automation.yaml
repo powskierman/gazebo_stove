@@ -35,7 +35,7 @@ script:
           float current_temp = id(gazebo_temp).state;
           // Read desired temperature from climate component
           // Falls back to desired_temp if climate component not available
-          float desired = id(gazebo_thermostat).target_temperature;
+          float desired = id(gazebo_thermostat).target_temperature_low;
           if (desired == 0) {
             desired = id(desired_temp).state;
           }

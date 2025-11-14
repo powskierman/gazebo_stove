@@ -5,6 +5,14 @@
 # This component provides the climate entity that Home Assistant expects
 # It works in conjunction with the manage_heating script which implements
 # the priority-based heating control
+#
+# IMPORTANT: This climate component works WITH the manage_heating script.
+# When the climate decides heating should change, it calls manage_heating
+# which applies the priority hierarchy:
+#   P1: Force Off (Manual Stop)
+#   P2: Emergency Heat (Manual Run - 15 min timer)
+#   P3: Schedule (Presence Mode - home/away)
+#   P4: Thermostat (normal operation)
 
 climate:
   - platform: thermostat
@@ -19,14 +27,15 @@ climate:
     sensor: gazebo_temp
 
     # ========================================================================
-    # SETPOINT CONFIGURATION
+    # PRESET CONFIGURATION (Replaces default target temperature)
     # ========================================================================
-    # Default temperature setpoint on first boot
-    default_target_temperature: 22
-
-    # Acceptable temperature setpoint range
-    min_temp: 5
-    max_temp: 35
+    # Presets define operating modes and default target temperatures
+    # For heating-only stove, we use "Comfort" mode as default
+    preset:
+      - name: Comfort
+        default_target_temperature_low: 22
+      - name: Economy
+        default_target_temperature_low: 18
 
     # ========================================================================
     # HEATING CONTROL CONFIGURATION
@@ -50,7 +59,7 @@ climate:
     # ========================================================================
     # NOTE: These actions call the manage_heating script, which implements
     # the priority-based control logic (Force Off > Emergency Heat > Schedule > Thermostat)
-    # The manage_heating script reads from this climate component's desired_temp
+    # The manage_heating script reads from this climate component's target temperature
     # and applies priority-based control before actually toggling the relay.
 
     heat_action:
