@@ -1,0 +1,30 @@
+# ============================================================================
+# CLIMATE COMPONENT - Generic Thermostat
+# ============================================================================
+# ESPHome generic_thermostat platform for Home Assistant climate entity
+# Works in conjunction with manage_heating script for priority-based control
+
+climate:
+  - platform: generic_thermostat
+    name: "Propane Stove Thermostat"
+    id: gazebo_thermostat
+
+    # Temperature sensor source (DS18B20 on GPIO4)
+    sensor: gazebo_temp
+
+    # Relay switch for heating control
+    heater: relay
+
+    # Default target temperature
+    target_temperature: 22.0
+    min_temp: 5.0
+    max_temp: 35.0
+
+    # Minimum timing to prevent relay chattering
+    min_heating_off_time: 30s
+    min_heating_run_time: 30s
+
+    # Temperature tolerance (hysteresis)
+    ac_mode: false
+    away_config:
+      default_target_temperature_low: 15.0
