@@ -11,7 +11,8 @@
 #   - core.yaml: Board, WiFi, API, OTA, NTP
 #   - hardware.yaml: GPIO, relays, LEDs, one-wire
 #   - sensors.yaml: Temperature, WiFi signal
-#   - entities.yaml: Numbers, selects, binary sensors, text sensors
+#   - climate.yaml: Thermostat component (works with manage_heating script)
+#   - entities.yaml: Numbers, selects, binary sensors, text sensors (synced with climate)
 #   - automation.yaml: Scripts and heating logic
 #   - display.yaml: Nextion UART and display
 #   - buttons.yaml: Restart and shutdown controls
@@ -35,8 +36,17 @@
 <<: !include includes/sensors.yaml
 
 # ============================================================================
+# CLIMATE (THERMOSTAT) COMPONENT
+# ============================================================================
+# ESPHome thermostat for Home Assistant integration
+# Works in conjunction with manage_heating script for priority-based control
+
+<<: !include includes/climate.yaml
+
+# ============================================================================
 # USER ENTITIES & SWITCHES
 # ============================================================================
+# Number sliders, select dropdowns, binary sensors, and text sensors
 
 <<: !include includes/entities.yaml
 

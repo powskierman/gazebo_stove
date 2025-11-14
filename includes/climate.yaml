@@ -1,0 +1,89 @@
+# ============================================================================
+# CLIMATE (THERMOSTAT) COMPONENT
+# ============================================================================
+# ESPHome thermostat component for Home Assistant integration
+# This component provides the climate entity that Home Assistant expects
+# It works in conjunction with the manage_heating script which implements
+# the priority-based heating control
+
+climate:
+  - platform: thermostat
+    name: "Propane Stove Thermostat"
+    id: gazebo_thermostat
+    icon: "mdi:fire"
+
+    # ========================================================================
+    # SENSOR CONFIGURATION
+    # ========================================================================
+    # The temperature sensor this thermostat monitors
+    sensor: gazebo_temp
+
+    # ========================================================================
+    # SETPOINT CONFIGURATION
+    # ========================================================================
+    # Default temperature setpoint on first boot
+    default_target_temperature: 22
+
+    # Acceptable temperature setpoint range
+    min_temp: 5
+    max_temp: 35
+
+    # ========================================================================
+    # HEATING CONTROL CONFIGURATION
+    # ========================================================================
+    # Minimum time the heating must stay ON when activated
+    min_heating_run_time: 60s
+
+    # Minimum time the heating must stay OFF before turning on again
+    min_heating_off_time: 60s
+
+    # Minimum time the system must be idle before considering to heat again
+    min_idle_time: 60s
+
+    # Hysteresis (deadband) settings
+    # These should match the heating_hysteresis number entity
+    heat_deadband: 0.5  # Temperature below setpoint where heating turns on
+    heat_overrun: 0.5   # Temperature above setpoint where heating turns off
+
+    # ========================================================================
+    # HEATING ACTION
+    # ========================================================================
+    # NOTE: These actions call the manage_heating script, which implements
+    # the priority-based control logic (Force Off > Emergency Heat > Schedule > Thermostat)
+    # The manage_heating script reads from this climate component's desired_temp
+    # and applies priority-based control before actually toggling the relay.
+
+    heat_action:
+      # When climate thinks heating should turn ON, trigger heating evaluation
+      - script.execute: manage_heating
+
+    idle_action:
+      # When climate thinks heating should turn OFF, trigger heating evaluation
+      - script.execute: manage_heating
+
+    # ========================================================================
+    # IMPLEMENTATION NOTES
+    # ========================================================================
+    # The thermostat climate component provides:
+    # 1. Climate entity for Home Assistant dashboard
+    # 2. Target temperature setpoint control
+    # 3. Automatic hysteresis-based heating decisions
+    # 4. Minimum run/off time enforcement (prevents rapid cycling)
+    # 5. Integration with Home Assistant climate automations
+    #
+    # The manage_heating script provides:
+    # 1. Priority-based control hierarchy:
+    #    - Priority 1: Force Off (Manual Stop) - absolute shutdown
+    #    - Priority 2: Emergency Heat (Manual Run) - 15-minute override
+    #    - Priority 3: Schedule (Presence Mode) - home/away control
+    #    - Priority 4: Thermostat Algorithm - normal operation
+    # 2. Override logic that respects user safety priorities
+    # 3. Detailed logging for debugging and monitoring
+    #
+    # Combined behavior:
+    # When climate component decides heating should change state, it calls
+    # manage_heating script. The script then applies all priority logic and
+    # actuator state to decide whether to actually control the relay.
+    #
+    # This ensures safety (Force Off always works) while providing automatic
+    # temperature control through the climate component's algorithms.

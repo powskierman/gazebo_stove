@@ -23,6 +23,9 @@ binary_sensor:
 
 number:
   # Desired Temperature Setpoint
+  # Note: The climate component is now the primary thermostat
+  # This number provides an alternative UI for setting the target temperature
+  # Users can set temperature via either the climate card or this number slider
   - platform: template
     name: "Desired Temperature"
     id: desired_temp
