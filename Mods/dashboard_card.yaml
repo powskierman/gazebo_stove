@@ -1,0 +1,175 @@
+# ============================================================================
+# HOME ASSISTANT DASHBOARD CARD - Gazebo Stove Thermostat & Controls
+# ============================================================================
+#
+# Updated with actual entity IDs from your ESPHome device
+#
+# How to add:
+# 1. Edit your dashboard
+# 2. Click "Add Card" → "Manual"
+# 3. Copy all content below
+# 4. Paste into the card editor
+# 5. Save
+#
+# ============================================================================
+
+type: entities
+title: Gazebo Stove - Controls & Status
+entities:
+  # ========================================================================
+  # THERMOSTAT STATUS
+  # ========================================================================
+  - entity: climate.gazebo_stove_propane_stove_thermostat
+    name: "Thermostat"
+    icon: mdi:thermometer-lines
+
+  - entity: sensor.gazebo_stove_gazebo_temperature
+    name: "Current Temperature"
+    icon: mdi:thermometer
+
+  - entity: number.gazebo_stove_desired_temperature
+    name: "Desired Temperature"
+    icon: mdi:thermometer-plus
+
+  # ========================================================================
+  # SCHEDULE CONTROL (ESPHome-based)
+  # ========================================================================
+  - type: divider
+
+  - entity: switch.gazebo_stove_heating_schedule
+    name: "Heating Schedule"
+    icon: mdi:calendar-clock
+
+  - entity: number.gazebo_stove_home_mode_time_hour
+    name: "Home Mode Hour (0-23)"
+    icon: mdi:home-clock
+
+  - entity: number.gazebo_stove_home_mode_time_minute
+    name: "Home Mode Minute (0-59)"
+    icon: mdi:home-clock
+
+  - entity: number.gazebo_stove_away_mode_time_hour
+    name: "Away Mode Hour (0-23)"
+    icon: mdi:clock-out
+
+  - entity: number.gazebo_stove_away_mode_time_minute
+    name: "Away Mode Minute (0-59)"
+    icon: mdi:clock-out
+
+  - entity: select.gazebo_stove_presence_mode
+    name: "Current Mode (Home/Away)"
+    icon: mdi:home-account
+
+  # ========================================================================
+  # MANUAL CONTROLS
+  # ========================================================================
+  - type: divider
+
+  - entity: switch.gazebo_stove_manual_run
+    name: "Emergency Heat (15 min)"
+    icon: mdi:fire-alert
+
+  - entity: switch.gazebo_stove_manual_stop
+    name: "Force Off (Highest Priority)"
+    icon: mdi:power-off
+
+  # ========================================================================
+  # RELAY STATUS
+  # ========================================================================
+  - type: divider
+
+  - entity: switch.gazebo_stove_propane_stove_relay
+    name: "Relay Status (Heating On/Off)"
+    icon: mdi:relay
+
+  # ========================================================================
+  # SENSOR CALIBRATION
+  # ========================================================================
+  - type: divider
+
+  - entity: number.gazebo_stove_temperature_offset
+    name: "Temperature Offset (-5 to +5°C)"
+    icon: mdi:pencil
+
+  - entity: number.gazebo_stove_heating_hysteresis
+    name: "Heating Hysteresis"
+    icon: mdi:sine-wave
+
+  # ========================================================================
+  # SYSTEM STATUS
+  # ========================================================================
+  - type: divider
+
+  - entity: binary_sensor.gazebo_stove_sensor_malfunction
+    name: "Sensor Malfunction"
+    icon: mdi:alert-circle
+
+  - entity: sensor.gazebo_stove_system_status
+    name: "System Status"
+    icon: mdi:information
+
+  - entity: light.gazebo_stove_status_led
+    name: "Status LED"
+    icon: mdi:led-on
+
+  # ========================================================================
+  # WIFI INFORMATION
+  # ========================================================================
+  - type: divider
+
+  - entity: sensor.gazebo_stove_wifi_signal_strength
+    name: "WiFi Signal Strength"
+    icon: mdi:wifi
+
+  # ========================================================================
+  # DEVICE CONTROL
+  # ========================================================================
+  - type: divider
+
+  - entity: button.gazebo_stove_device_restart
+    name: "Restart Device"
+    icon: mdi:restart
+
+  - entity: button.gazebo_stove_safe_shutdown
+    name: "Safe Shutdown"
+    icon: mdi:power
+
+show_header_toggle: false
+
+# ============================================================================
+# ENTITY MAPPING - Actual IDs from Your Device
+# ============================================================================
+#
+# Thermostat & Temperature:
+#   climate.gazebo_stove_propane_stove_thermostat
+#   sensor.gazebo_stove_gazebo_temperature
+#   number.gazebo_stove_desired_temperature
+#
+# Schedule Control (ESPHome):
+#   switch.gazebo_stove_heating_schedule
+#   number.gazebo_stove_home_mode_time_hour
+#   number.gazebo_stove_home_mode_time_minute
+#   number.gazebo_stove_away_mode_time_hour
+#   number.gazebo_stove_away_mode_time_minute
+#   select.gazebo_stove_presence_mode
+#
+# Manual Controls:
+#   switch.gazebo_stove_manual_run
+#   switch.gazebo_stove_manual_stop
+#
+# Relay Status:
+#   switch.gazebo_stove_propane_stove_relay
+#
+# Calibration:
+#   number.gazebo_stove_temperature_offset
+#   number.gazebo_stove_heating_hysteresis
+#
+# System:
+#   binary_sensor.gazebo_stove_sensor_malfunction
+#   sensor.gazebo_stove_system_status
+#   light.gazebo_stove_status_led
+#   sensor.gazebo_stove_wifi_signal_strength
+#   button.gazebo_stove_device_restart
+#   button.gazebo_stove_safe_shutdown
+#
+# ============================================================================

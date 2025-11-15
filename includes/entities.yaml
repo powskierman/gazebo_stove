@@ -192,7 +192,7 @@ climate:
     min_heating_off_time: 5s
     min_heating_run_time: 30s
     min_idle_time: 5s
-    
+
     # Heat action triggers priority management instead of directly controlling relay
     # The manage_heating script will decide whether to turn on relay based on priorities
     heat_action:
