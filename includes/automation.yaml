@@ -141,10 +141,10 @@ interval:
 
                 int current_hour = time->now().hour;
                 int current_minute = time->now().minute;
-                int home_hour = id(home_mode_hour).state;
-                int home_minute = id(home_mode_minute).state;
-                int away_hour = id(away_mode_hour).state;
-                int away_minute = id(away_mode_minute).state;
+                int home_hour = (int)id(home_mode_hour).state;
+                int home_minute = (int)id(home_mode_minute).state;
+                int away_hour = (int)id(away_mode_hour).state;
+                int away_minute = (int)id(away_mode_minute).state;
 
                 // Check if current time matches home mode time
                 if (current_hour == home_hour && current_minute == home_minute) {
@@ -172,8 +172,8 @@ interval:
 
                 int current_hour = time->now().hour;
                 int current_minute = time->now().minute;
-                int away_hour = id(away_mode_hour).state;
-                int away_minute = id(away_mode_minute).state;
+                int away_hour = (int)id(away_mode_hour).state;
+                int away_minute = (int)id(away_mode_minute).state;
 
                 // Check if current time matches away mode time
                 if (current_hour == away_hour && current_minute == away_minute) {
