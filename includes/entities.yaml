@@ -193,16 +193,15 @@ climate:
     min_heating_run_time: 30s
     min_idle_time: 5s
     
-    # Heat action controls relay directly
-    # Note: Priority script (manage_heating) will override if higher priorities are active
+    # Heat action triggers priority management instead of directly controlling relay
+    # The manage_heating script will decide whether to turn on relay based on priorities
     heat_action:
-      - switch.turn_on: relay
-    
-    # Idle action controls relay directly  
-    # Note: Priority script (manage_heating) will override if higher priorities are active
-    # This should trigger when current temp >= (desired temp + deadband)
+      - script.execute: manage_heating
+
+    # Idle action: when thermostat wants to stop heating, also trigger priority management
+    # The manage_heating script will turn off relay if no higher priority is active
     idle_action:
-      - switch.turn_off: relay
+      - script.execute: manage_heating
 
 # ============================================================================
 # SELECT ENTITIES - Mode Selection

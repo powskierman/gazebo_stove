@@ -89,12 +89,23 @@ script:
             return;
           }
           
-          // When current temp < desired temp, let climate platform control heating
-          // The climate platform will evaluate on sensor updates and turn relay on/off
-          // We don't interfere here - just let it work
-          ESP_LOGD("PRIORITY", "Current (%.1f°C) < Desired (%.1f°C) - Climate platform controls (no interference)",
+          // Priority 4: Thermostat normal control
+          // If current temp < desired temp, turn on the relay to heat
+          if (current_temp < desired) {
+            if (!id(relay).state) {
+              id(relay).turn_on();
+              ESP_LOGI("PRIORITY", "Thermostat heating: Current (%.1f°C) < Desired (%.1f°C) - Relay ON (priority 4)",
+                       current_temp, desired);
+            } else {
+              ESP_LOGD("PRIORITY", "Thermostat heating: Relay already ON");
+            }
+            return;
+          }
+
+          // If we get here, current temp == desired temp (within hysteresis)
+          // Keep relay on to maintain temperature
+          ESP_LOGD("PRIORITY", "Current (%.1f°C) == Desired (%.1f°C) - Holding temperature",
                    current_temp, desired);
-          // Note: Don't return here - let script finish so climate platform can control relay
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
   - id: update_relay_state
@@ -146,13 +157,32 @@ interval:
                 int current_minute = time->now().minute;
                 int home_hour = (int)id(home_mode_hour).state;
                 int home_minute = (int)id(home_mode_minute).state;
+                int away_hour = (int)id(away_mode_hour).state;
+                int away_minute = (int)id(away_mode_minute).state;
 
-                // Check if current time >= home mode time (trigger when reaching scheduled hour:minute)
-                // Prevents missing schedule if changed after it already passed today
-                if ((current_hour > home_hour) ||
-                    (current_hour == home_hour && current_minute >= home_minute)) {
+                ESP_LOGD("SCHEDULE", "Home Mode Check: Current %02d:%02d vs Home %02d:%02d vs Away %02d:%02d",
+                         current_hour, current_minute, home_hour, home_minute, away_hour, away_minute);
+
+                // Check if current time is in HOME window:
+                // From home_mode_time up to (but not including) away_mode_time
+                bool at_or_after_home = (current_hour > home_hour) ||
+                                        (current_hour == home_hour && current_minute >= home_minute);
+                bool before_away = (current_hour < away_hour) ||
+                                   (current_hour == away_hour && current_minute < away_minute);
+
+                bool in_home_window = at_or_after_home && before_away;
+
+                ESP_LOGD("SCHEDULE", "At/after home: %s, Before away: %s, In window: %s",
+                         at_or_after_home ? "true" : "false",
+                         before_away ? "true" : "false",
+                         in_home_window ? "true" : "false");
+
+                if (in_home_window) {
                   if (id(presence_mode).state != "home") {
+                    ESP_LOGI("SCHEDULE", "Triggering Home Mode switch");
                     return true;  // Time to switch to home mode
+                  } else {
+                    ESP_LOGD("SCHEDULE", "Already in home mode, skipping");
                   }
                 }
 
@@ -178,15 +208,43 @@ interval:
 
                 int current_hour = time->now().hour;
                 int current_minute = time->now().minute;
+                int home_hour = (int)id(home_mode_hour).state;
+                int home_minute = (int)id(home_mode_minute).state;
                 int away_hour = (int)id(away_mode_hour).state;
                 int away_minute = (int)id(away_mode_minute).state;
 
-                // Check if current time >= away mode time (trigger when reaching scheduled hour:minute)
-                // Prevents missing schedule if changed after it already passed today
-                if ((current_hour > away_hour) ||
-                    (current_hour == away_hour && current_minute >= away_minute)) {
+                ESP_LOGD("SCHEDULE", "Away Mode Check: Current %02d:%02d vs Home %02d:%02d vs Away %02d:%02d",
+                         current_hour, current_minute, home_hour, home_minute, away_hour, away_minute);
+
+                // Check if current time is in AWAY window:
+                // From away_mode_time up to (but not including) home_mode_time (next day)
+                bool at_or_after_away = (current_hour > away_hour) ||
+                                        (current_hour == away_hour && current_minute >= away_minute);
+                bool before_home = (current_hour < home_hour) ||
+                                   (current_hour == home_hour && current_minute < home_minute);
+
+                // Special case: if away_hour > home_hour, we're in overnight period
+                // e.g., away at 22:00, home at 06:00 - valid times are 22:00-23:59 or 00:00-06:00
+                bool in_away_window;
+                if (away_hour > home_hour) {
+                  // Overnight schedule: away_time to midnight OR midnight to home_time
+                  in_away_window = at_or_after_away || before_home;
+                } else {
+                  // Daytime schedule: only valid if after away AND before home
+                  in_away_window = at_or_after_away && before_home;
+                }
+
+                ESP_LOGD("SCHEDULE", "At/after away: %s, Before home: %s, In window: %s",
+                         at_or_after_away ? "true" : "false",
+                         before_home ? "true" : "false",
+                         in_away_window ? "true" : "false");
+
+                if (in_away_window) {
                   if (id(presence_mode).state != "away") {
+                    ESP_LOGI("SCHEDULE", "Triggering Away Mode switch");
                     return true;  // Time to switch to away mode
+                  } else {
+                    ESP_LOGD("SCHEDULE", "Already in away mode, skipping");
                   }
                 }
 
