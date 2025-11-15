@@ -160,7 +160,10 @@ interval:
           then:
             - logger.log: "Schedule: Switching to Home Mode"
             - lambda: |-
-                id(presence_mode).publish_state("home");
+                auto select = id(presence_mode);
+                select->publish_state("home");
+                id(presence_mode_state) = "home";
+                id(manage_heating)->execute();
 
   # Check for away mode schedule separately (every minute)
   - interval: 1min
@@ -191,7 +194,10 @@ interval:
           then:
             - logger.log: "Schedule: Switching to Away Mode"
             - lambda: |-
-                id(presence_mode).publish_state("away");
+                auto select = id(presence_mode);
+                select->publish_state("away");
+                id(presence_mode_state) = "away";
+                id(manage_heating)->execute();
 
 # ============================================================================
 # EVENT-DRIVEN PRIORITY SYSTEM

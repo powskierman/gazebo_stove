@@ -216,13 +216,15 @@ select:
     options:
       - "home"
       - "away"
-    initial_option: "home"
-    restore_value: yes
+    lambda: |-
+      return id(presence_mode_state);
     set_action:
       then:
         - logger.log:
             format: "Presence mode set to: %s"
             args: ["x.c_str()"]
+        - lambda: |-
+            id(presence_mode_state) = x;
         # Re-evaluate heating when presence changes (priority override)
         - script.execute: manage_heating
 
@@ -290,3 +292,11 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+
+  # Presence mode state tracker (Home/Away mode storage)
+  # This global variable stores the presence mode state for the presence_mode select entity
+  # It is used by the template select entity's lambda to read/write the current mode
+  - id: presence_mode_state
+    type: std::string
+    restore_value: yes
+    initial_value: '"home"'
