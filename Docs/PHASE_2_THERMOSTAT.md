@@ -1,3 +1,7 @@
+```
+
+```
+
 # Phase 2: Thermostat & Heating Control Implementation
 
 **Timeline**: Weeks 3-4

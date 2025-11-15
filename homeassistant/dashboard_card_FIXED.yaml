@@ -1,0 +1,47 @@
+# ============================================================================
+# HOME ASSISTANT DASHBOARD CARD - Gazebo Stove Schedule (FIXED)
+# ============================================================================
+# This fixes the issue where the header toggle was controlling all switches
+#
+# IMPORTANT: Add the schedule enable switch to your configuration.yaml first:
+#   input_boolean:
+#     gazebo_schedule_enabled:
+#       name: "Gazebo Heating Schedule"
+#       icon: mdi:calendar-clock
+#       initial: true
+#
+# ============================================================================
+
+type: entities
+title: Heating Schedule
+entities:
+  # Schedule Enable/Disable Switch (controls schedule automations only)
+  - entity: input_boolean.gazebo_schedule_enabled
+    name: "Heating Schedule"
+    icon: mdi:calendar-clock
+  
+  # Schedule Time Settings
+  - entity: input_datetime.home_mode_time
+    name: Turn On Stove
+  - entity: input_datetime.away_mode_time
+    name: Turn Off Stove
+  
+  # Current Mode Display
+  - entity: select.gazebo_stove_presence_mode
+    name: Current Mode
+  
+  # Manual Controls
+  - type: divider
+  - entity: switch.gazebo_stove_manual_run
+    name: Emergency Heat (15 min)
+  - entity: switch.gazebo_stove_manual_stop
+    name: Force Off
+  
+  # Settings
+  - entity: number.gazebo_stove_heating_hysteresis
+    name: Hysteresis
+
+# CRITICAL: Disable header toggle to prevent it from controlling all switches
+show_header_toggle: false
+state_color: true
+

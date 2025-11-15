@@ -1,0 +1,107 @@
+# ============================================================================
+# HOME ASSISTANT CONFIGURATION - Gazebo Stove
+# ============================================================================
+# Priority 3: Schedule (Home Mode Time / Away Mode Time)
+# Priority 4: Thermostat Template Entity (for UI)
+#
+# Add this section to your Home Assistant configuration.yaml file
+# OR create these entities via the UI: Settings → Devices & Services → Helpers
+#
+# IMPORTANT: Update entity IDs to match your ESPHome device names
+# Common patterns: gazebo_stove, gazebo-stove, or check your entities list
+#
+# ============================================================================
+# SCHEDULE CONTROL - Enable/Disable Schedule Feature (Priority 3)
+# ============================================================================
+
+input_boolean:
+  gazebo_schedule_enabled:
+    name: "Gazebo Heating Schedule"
+    icon: mdi:calendar-clock
+    initial: true
+
+# ============================================================================
+# TIME INPUT ENTITIES - Schedule Configuration (Priority 3)
+# ============================================================================
+
+input_datetime:
+  gazebo_home_mode_time:
+    name: "Gazebo Home Mode Time"
+    has_date: false
+    has_time: true
+    icon: mdi:home-clock
+    initial: "06:00:00"
+
+  gazebo_away_mode_time:
+    name: "Gazebo Away Mode Time"
+    has_date: false
+    has_time: true
+    icon: mdi:clock-out
+    initial: "22:00:00"
+
+# ============================================================================
+# TEMPLATE CLIMATE ENTITY - Thermostat Card (Priority 4)
+# ============================================================================
+# This creates a thermostat card in Home Assistant that displays:
+# - Current temperature (sensor reading)
+# - Desired temperature (setpoint slider)
+# - Heat status indicator (heating/idle/off)
+#
+# The actual control logic runs in ESPHome with custom asymmetric hysteresis
+
+template:
+  - climate:
+      - name: "Propane Stove Thermostat"
+        unique_id: gazebo_propane_stove_thermostat
+        # Current temperature from sensor
+        current_temperature: "{{ states('sensor.gazebo_temperature') | float }}"
+        # Target temperature from number entity
+        target_temperature: "{{ states('number.desired_temperature') | float }}"
+        target_temperature_step: 0.5
+        min_temp: 5
+        max_temp: 35
+        # Heating-only mode (propane stove cannot cool)
+        hvac_modes:
+          - "heat"
+          - "off"
+        # Preset modes based on presence
+        preset_modes:
+          - "home"
+          - "away"
+        preset_mode: "{{ 'home' if states('select.presence_mode') == 'home' else 'away' }}"
+        temperature_unit: C
+        # Action when user changes target temperature
+        set_temperature:
+          service: number.set_value
+          target:
+            entity_id: number.desired_temperature
+            # NOTE: Update entity_id above to match your ESPHome device name
+            # Common names: number.gazebo_stove_desired_temperature, number.desired_temperature
+          data:
+            value: "{{ temperature }}"
+        # Action when user changes preset mode
+        set_preset_mode:
+          service: select.select_option
+          target:
+            entity_id: select.presence_mode
+            # NOTE: Update entity_id above to match your ESPHome device name
+            # Common names: select.gazebo_stove_presence_mode, select.presence_mode
+          data:
+            option: "{{ preset_mode }}"
+        # HVAC action state (heating/idle/off) based on relay state
+        hvac_action: >-
+          {% if states('switch.propane_stove_relay') == 'on' %}
+            heating
+          {% elif states('select.presence_mode') == 'away' %}
+            off
+          {% elif states('switch.manual_stop') == 'on' %}
+            off
+          {% else %}
+            idle
+          {% endif %}
+          # NOTE: Update entity IDs above to match your ESPHome device names
+          # Common names:
+          #   switch.propane_stove_relay or switch.gazebo_stove_propane_stove_relay
+          #   select.presence_mode or select.gazebo_stove_presence_mode
+          #   switch.manual_stop or switch.gazebo_stove_manual_stop
+

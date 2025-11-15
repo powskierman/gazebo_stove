@@ -1,0 +1,34 @@
+# ============================================================================
+# HOME ASSISTANT DASHBOARD CARD - Gazebo Stove Schedule
+# ============================================================================
+# Priority 3: Schedule (Home Mode Time / Away Mode Time)
+#
+# Add this card to your Home Assistant dashboard via UI or YAML
+# UI: Edit Dashboard → Add Card → Manual → Paste YAML
+#
+# ============================================================================
+
+type: entities
+title: Gazebo Stove - Heating Schedule
+entities:
+  - entity: input_boolean.gazebo_schedule_enabled
+    name: "Heating Schedule"
+    icon: mdi:calendar-clock
+  - entity: input_datetime.gazebo_home_mode_time
+    name: "Home Mode Begins"
+    icon: mdi:home-clock
+  - entity: input_datetime.gazebo_away_mode_time
+    name: "Away Mode Begins"
+    icon: mdi:clock-out
+  - entity: select.presence_mode
+    # NOTE: Update entity_id above to match your ESPHome device name
+    name: "Current Mode"
+  - type: divider
+  - entity: switch.manual_run
+    # NOTE: Update entity_id above to match your ESPHome device name
+    name: "Emergency Heat"
+  - entity: switch.manual_stop
+    # NOTE: Update entity_id above to match your ESPHome device name
+    name: "Force Off"
+show_header_toggle: false
+
