@@ -48,23 +48,14 @@ script:
           }
 
           // Priority 2: Emergency Heat (Manual Run)
+          // The manual_run_timer script handles the 15-minute auto-disable
+          // This priority just needs to keep relay ON while manual_run_active is true
           if (manual_run) {
-            long elapsed = millis() - id(manual_run_timeout);
-            long timeout_ms = 15 * 60 * 1000; // 15 minutes in milliseconds
-
-            if (elapsed >= timeout_ms) {
-              // Auto-disable after 15 minutes
-              ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling");
-              id(manual_run_active) = false;
-              // Continue to lower priorities after manual run expires
-            } else {
-              // Keep relay ON while manual run is active
-              if (!id(relay).state) {
-                id(relay).turn_on();
-                ESP_LOGI("PRIORITY", "Emergency Heat: Relay ON (priority 2)");
-              }
-              return;
+            if (!id(relay).state) {
+              id(relay).turn_on();
+              ESP_LOGI("PRIORITY", "Emergency Heat: Relay ON (priority 2)");
             }
+            return;
           }
 
           // Priority 3: Schedule (Away Mode)
