@@ -203,19 +203,13 @@ globals:
     restore_value: no
     initial_value: '0'
 
-  # Manual run timeout timestamp
-  - id: manual_run_timeout
-    type: long
-    restore_value: no
-    initial_value: '0'
-
-  # Manual run state tracker
+  # Manual run state tracker (used by priority management system)
   - id: manual_run_active
     type: bool
     restore_value: no
     initial_value: 'false'
 
-  # Manual stop state tracker
+  # Manual stop state tracker (used by priority management system)
   - id: manual_stop_active
     type: bool
     restore_value: no

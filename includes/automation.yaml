@@ -107,37 +107,24 @@ script:
     then:
       - script.execute: manage_heating
 
+  # Manual Run Timer - Implements 15-minute auto-off using delay (replaces polling)
+  # This script is started when Manual Run is activated and automatically
+  # disables it after 15 minutes without needing continuous polling checks.
+  - id: manual_run_timer
+    then:
+      - delay: 15min
+      - lambda: |-
+          ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling Manual Run");
+          id(manual_run_active) = false;
+          id(manual_run).publish_state(false);
+      - script.execute: manage_heating
+
 
 # ============================================================================
 # INTERVAL AUTOMATIONS - Periodic Tasks
 # ============================================================================
 
 interval:
-  # Check Manual Run timeout every 30 seconds
-  - interval: 30s
-    then:
-      - if:
-          condition:
-            - lambda: |-
-                return id(manual_run_active);
-          then:
-            - lambda: |-
-                long elapsed = millis() - id(manual_run_timeout);
-                long timeout_ms = 15 * 60 * 1000; // 15 minutes
-                long remaining_ms = timeout_ms - elapsed;
-                long remaining_min = remaining_ms / 1000 / 60;
-                long remaining_sec = (remaining_ms / 1000) % 60;
-
-                if (elapsed >= timeout_ms) {
-                  ESP_LOGI("MANUAL_RUN", "Timeout check: 15 minutes reached - auto-disabling");
-                  id(manual_run_active) = false;
-                  // Turn off the switch when timeout expires
-                  id(manual_run).turn_off();
-                } else {
-                  ESP_LOGD("MANUAL_RUN", "Timeout check: %ld:%02ld remaining", remaining_min, remaining_sec);
-                }
-            - script.execute: manage_heating
-  
   # Run priority check every 10 seconds to handle cases where desired temp < current temp
   # This ensures heating-only system turns off immediately when setpoint is lowered
   - interval: 10s
