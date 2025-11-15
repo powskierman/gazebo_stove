@@ -46,7 +46,19 @@ number:
             }
         # Small delay to allow state to sync
         - delay: 50ms
-        # Re-evaluate heating with new setpoint
+        # Sync ESPHome climate platform target temperature with desired_temp
+        # This ensures climate platform uses the same target as the number entity
+        # The climate platform receives updates from Home Assistant API, but we also sync here
+        # to ensure consistency when desired_temp is changed directly
+        - lambda: |-
+            // Set the climate platform's target temperature to match desired_temp
+            auto* climate = id(propane_stove_thermostat);
+            if (climate != nullptr) {
+              climate->target_temperature = x;
+              climate->publish_state();
+              ESP_LOGD("TEMP_SYNC", "Synced climate platform target to %.1f°C", x);
+            }
+        # Trigger priority check to handle heating-only logic (current > desired = turn off)
         - script.execute: manage_heating
 
   # Temperature Offset (Calibration)
@@ -82,6 +94,39 @@ number:
         - logger.log:
             format: "Heating hysteresis set to %.1f°C"
             args: ["x"]
+        # Note: Hysteresis entity is for reference only
+        # ESPHome climate platform uses its own internal hysteresis calculation
+
+# ============================================================================
+# CLIMATE ENTITY - Thermostat Control
+# ============================================================================
+# ESPHome climate platform provides thermostat card UI in Home Assistant and
+# handles normal temperature control based on the desired_temp setpoint.
+#
+# The priority management system (manage_heating script in automation.yaml)
+# overrides this when higher-priority modes are active (Manual Stop, Manual Run,
+# or Away Mode scheduling).
+
+climate:
+  - platform: thermostat
+    name: "Propane Stove Thermostat"
+    id: propane_stove_thermostat
+    sensor: gazebo_temp
+    # Reduced times to allow faster response when setpoint changes
+    min_heating_off_time: 5s
+    min_heating_run_time: 30s
+    min_idle_time: 5s
+    
+    # Heat action controls relay directly
+    # Note: Priority script (manage_heating) will override if higher priorities are active
+    heat_action:
+      - switch.turn_on: relay
+    
+    # Idle action controls relay directly  
+    # Note: Priority script (manage_heating) will override if higher priorities are active
+    # This should trigger when current temp >= (desired temp + deadband)
+    idle_action:
+      - switch.turn_off: relay
 
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
@@ -102,59 +147,14 @@ select:
         - logger.log:
             format: "Presence mode set to: %s"
             args: ["x.c_str()"]
-        # Re-evaluate heating when presence changes
+        # Re-evaluate heating when presence changes (priority override)
         - script.execute: manage_heating
 
 # ============================================================================
 # SWITCH ENTITIES - Manual Overrides
 # ============================================================================
-
-switch:
-  # Manual Run Override (Emergency heating for 15 minutes)
-  - platform: template
-    name: "Manual Run"
-    id: manual_run
-    icon: "mdi:fire-alert"
-    restore_mode: ALWAYS_OFF
-    assumption_state: off
-    turn_on_action:
-      then:
-        - logger.log: "Manual Run enabled - 15 minute emergency heating"
-        - lambda: |-
-            id(manual_run_timeout) = millis();
-            id(manual_run_active) = true;
-            id(relay).turn_on();
-            ESP_LOGI("MANUAL_RUN", "Activated - Relay ON (15-min timer started)");
-        - script.execute: update_relay_state
-    turn_off_action:
-      then:
-        - logger.log: "Manual Run disabled"
-        - lambda: |-
-            id(manual_run_timeout) = 0;
-            id(manual_run_active) = false;
-        - script.execute: manage_heating
-
-  # Manual Stop Override (Force heating off indefinitely)
-  - platform: template
-    name: "Manual Stop"
-    id: manual_stop
-    icon: "mdi:power-off"
-    restore_mode: ALWAYS_OFF
-    assumption_state: off
-    turn_on_action:
-      then:
-        - logger.log: "Manual Stop enabled - Heating disabled"
-        - lambda: |-
-            id(manual_stop_active) = true;
-            id(relay).turn_off();
-            ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
-        - script.execute: update_relay_state
-    turn_off_action:
-      then:
-        - logger.log: "Manual Stop disabled - Restoring normal control"
-        - lambda: |-
-            id(manual_stop_active) = false;
-        - script.execute: manage_heating
+# Note: Manual Run and Manual Stop switches are now defined in hardware.yaml
+# This prevents YAML section conflicts when merging multiple includes
 
 # ============================================================================
 # TEXT SENSORS - Status Messages & Information
