@@ -97,6 +97,82 @@ number:
         # Note: Hysteresis entity is for reference only
         # ESPHome climate platform uses its own internal hysteresis calculation
 
+  # ========================================================================
+  # Schedule Time Configuration Entities
+  # ========================================================================
+
+  # Home Mode Time (Hour)
+  - platform: template
+    name: "Home Mode Time (Hour)"
+    id: home_mode_hour
+    min_value: 0
+    max_value: 23
+    step: 1
+    unit_of_measurement: "h"
+    icon: "mdi:home-clock"
+    restore_value: yes
+    initial_value: 6
+    optimistic: true
+    set_action:
+      then:
+        - logger.log:
+            format: "Home mode hour set to: %.0f"
+            args: ["x"]
+
+  # Home Mode Time (Minute)
+  - platform: template
+    name: "Home Mode Time (Minute)"
+    id: home_mode_minute
+    min_value: 0
+    max_value: 59
+    step: 1
+    unit_of_measurement: "min"
+    icon: "mdi:home-clock"
+    restore_value: yes
+    initial_value: 0
+    optimistic: true
+    set_action:
+      then:
+        - logger.log:
+            format: "Home mode minute set to: %.0f"
+            args: ["x"]
+
+  # Away Mode Time (Hour)
+  - platform: template
+    name: "Away Mode Time (Hour)"
+    id: away_mode_hour
+    min_value: 0
+    max_value: 23
+    step: 1
+    unit_of_measurement: "h"
+    icon: "mdi:clock-out"
+    restore_value: yes
+    initial_value: 22
+    optimistic: true
+    set_action:
+      then:
+        - logger.log:
+            format: "Away mode hour set to: %.0f"
+            args: ["x"]
+
+  # Away Mode Time (Minute)
+  - platform: template
+    name: "Away Mode Time (Minute)"
+    id: away_mode_minute
+    min_value: 0
+    max_value: 59
+    step: 1
+    unit_of_measurement: "min"
+    icon: "mdi:clock-out"
+    restore_value: yes
+    initial_value: 0
+    optimistic: true
+    set_action:
+      then:
+        - logger.log:
+            format: "Away mode minute set to: %.0f"
+            args: ["x"]
+
 # ============================================================================
 # CLIMATE ENTITY - Thermostat Control
 # ============================================================================
@@ -151,10 +227,10 @@ select:
         - script.execute: manage_heating
 
 # ============================================================================
-# SWITCH ENTITIES - Manual Overrides
+# SWITCH ENTITIES - Manual Overrides & Schedule Control
 # ============================================================================
-# Note: Manual Run and Manual Stop switches are now defined in hardware.yaml
-# This prevents YAML section conflicts when merging multiple includes
+# Note: Manual Run, Manual Stop, and Heating Schedule switches are defined
+# in hardware.yaml to prevent YAML section conflicts when merging includes
 
 # ============================================================================
 # TEXT SENSORS - Status Messages & Information

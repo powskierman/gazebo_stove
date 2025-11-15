@@ -117,3 +117,18 @@ switch:
             id(manual_stop_active) = false;
             ESP_LOGI("MANUAL_STOP", "Force Off disabled - Normal control resumed");
         - script.execute: manage_heating
+
+  # Heating Schedule Enable/Disable
+  - platform: template
+    name: "Heating Schedule"
+    id: schedule_enabled
+    icon: "mdi:calendar-clock"
+    restore_mode: ALWAYS_ON
+    optimistic: true
+    assumed_state: false
+    turn_on_action:
+      then:
+        - logger.log: "Heating schedule enabled"
+    turn_off_action:
+      then:
+        - logger.log: "Heating schedule disabled"

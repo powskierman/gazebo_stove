@@ -112,10 +112,82 @@ script:
 
 
 # ============================================================================
+# TIME-BASED AUTOMATIONS - Schedule Control (Priority 3)
+# ============================================================================
+# These automations run at specific times each day to automatically switch
+# between Home Mode and Away Mode based on user-configured schedule times.
+# The schedule can be enabled/disabled via the schedule_enabled switch.
+#
+# Note: ESPHome uses interval-based time triggers that check every minute.
+# For precise triggering at dynamic times, we use a 1-minute interval to
+# check if the current time matches the scheduled time.
+
+# ============================================================================
 # INTERVAL AUTOMATIONS - Periodic Tasks
 # ============================================================================
 
 interval:
+  # Check schedule every minute to trigger home/away mode changes
+  # This compares the current time to the configured schedule times
+  - interval: 1min
+    then:
+      - if:
+          condition:
+            - lambda: |-
+                if (!id(schedule_enabled).state) return false;  // Skip if schedule disabled
+
+                auto time = id(sntp_time);
+                if (time->now().is_valid() == false) return false;  // Skip if time not synced
+
+                int current_hour = time->now().hour;
+                int current_minute = time->now().minute;
+                int home_hour = id(home_mode_hour).state;
+                int home_minute = id(home_mode_minute).state;
+                int away_hour = id(away_mode_hour).state;
+                int away_minute = id(away_mode_minute).state;
+
+                // Check if current time matches home mode time
+                if (current_hour == home_hour && current_minute == home_minute) {
+                  if (id(presence_mode).state != "home") {
+                    return true;  // Time to switch to home mode
+                  }
+                }
+
+                return false;
+          then:
+            - logger.log: "Schedule: Switching to Home Mode"
+            - lambda: |-
+                id(presence_mode).publish_state("home");
+
+  # Check for away mode schedule separately (every minute)
+  - interval: 1min
+    then:
+      - if:
+          condition:
+            - lambda: |-
+                if (!id(schedule_enabled).state) return false;  // Skip if schedule disabled
+
+                auto time = id(sntp_time);
+                if (time->now().is_valid() == false) return false;  // Skip if time not synced
+
+                int current_hour = time->now().hour;
+                int current_minute = time->now().minute;
+                int away_hour = id(away_mode_hour).state;
+                int away_minute = id(away_mode_minute).state;
+
+                // Check if current time matches away mode time
+                if (current_hour == away_hour && current_minute == away_minute) {
+                  if (id(presence_mode).state != "away") {
+                    return true;  // Time to switch to away mode
+                  }
+                }
+
+                return false;
+          then:
+            - logger.log: "Schedule: Switching to Away Mode"
+            - lambda: |-
+                id(presence_mode).publish_state("away");
+
   # Run priority check every 10 seconds to handle cases where desired temp < current temp
   # This ensures heating-only system turns off immediately when setpoint is lowered
   - interval: 10s
