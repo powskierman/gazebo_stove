@@ -33,10 +33,13 @@ script:
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
 
-          ESP_LOGD("PRIORITY", "Away=%s, ManualStop=%s, ManualRun=%s",
+          ESP_LOGI("PRIORITY", "=== MANAGE_HEATING CALLED ===");
+          ESP_LOGI("PRIORITY", "Presence Mode: %s", id(presence_mode).state.c_str());
+          ESP_LOGI("PRIORITY", "Away=%s, ManualStop=%s, ManualRun=%s",
                    away_mode ? "true" : "false",
                    manual_stop ? "true" : "false",
                    manual_run ? "true" : "false");
+          ESP_LOGI("PRIORITY", "Relay State: %s", id(relay).state ? "ON" : "OFF");
 
           // Priority 1: Force Off (Manual Stop) - HIGHEST PRIORITY
           if (manual_stop) {
