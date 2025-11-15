@@ -143,11 +143,11 @@ interval:
                 int current_minute = time->now().minute;
                 int home_hour = (int)id(home_mode_hour).state;
                 int home_minute = (int)id(home_mode_minute).state;
-                int away_hour = (int)id(away_mode_hour).state;
-                int away_minute = (int)id(away_mode_minute).state;
 
-                // Check if current time matches home mode time
-                if (current_hour == home_hour && current_minute == home_minute) {
+                // Check if current time >= home mode time (trigger when reaching scheduled hour:minute)
+                // Prevents missing schedule if changed after it already passed today
+                if ((current_hour > home_hour) ||
+                    (current_hour == home_hour && current_minute >= home_minute)) {
                   if (id(presence_mode).state != "home") {
                     return true;  // Time to switch to home mode
                   }
@@ -175,8 +175,10 @@ interval:
                 int away_hour = (int)id(away_mode_hour).state;
                 int away_minute = (int)id(away_mode_minute).state;
 
-                // Check if current time matches away mode time
-                if (current_hour == away_hour && current_minute == away_minute) {
+                // Check if current time >= away mode time (trigger when reaching scheduled hour:minute)
+                // Prevents missing schedule if changed after it already passed today
+                if ((current_hour > away_hour) ||
+                    (current_hour == away_hour && current_minute >= away_minute)) {
                   if (id(presence_mode).state != "away") {
                     return true;  // Time to switch to away mode
                   }
