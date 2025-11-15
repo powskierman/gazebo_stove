@@ -75,7 +75,10 @@ script:
           // the case where desired temp < current temp (heating-only system should turn off)
           float current_temp = id(gazebo_temp).state;
           float desired = id(desired_temp).state;
-          
+
+          ESP_LOGI("PRIORITY", "Priority 4 - Current: %.1f°C, Desired: %.1f°C",
+                   current_temp, desired);
+
           // For heating-only system: if current temp > desired temp, turn off immediately
           // This handles the case where user lowers setpoint below current temperature
           // The climate platform might not handle this immediately due to min_heating_run_time
@@ -88,7 +91,7 @@ script:
             // Return here - don't let climate platform turn it back on while current > desired
             return;
           }
-          
+
           // Priority 4: Thermostat normal control
           // If current temp < desired temp, turn on the relay to heat
           if (current_temp < desired) {
@@ -106,6 +109,18 @@ script:
           // Keep relay on to maintain temperature
           ESP_LOGD("PRIORITY", "Current (%.1f°C) == Desired (%.1f°C) - Holding temperature",
                    current_temp, desired);
+
+  # Sync desired_temp with climate platform's target temperature
+  # Called when climate platform's target changes (via Home Assistant)
+  - id: sync_desired_temp
+    then:
+      - lambda: |-
+          auto* climate = id(propane_stove_thermostat);
+          if (climate != nullptr) {
+            float target = climate->target_temperature;
+            ESP_LOGI("TEMP_SYNC", "Syncing desired_temp to climate target: %.1f°C", target);
+            id(desired_temp).publish_state(target);
+          }
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
   - id: update_relay_state

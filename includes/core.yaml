@@ -15,9 +15,6 @@ esphome:
             wifi.connected:
           timeout: 30s
       - logger.log: "WiFi connected, initializing components"
-      - delay: 5s
-      - logger.log: "Evaluating heating priority system on boot"
-      - script.execute: manage_heating
 
 # ============================================================================
 # BOARD SELECTION & CONFIGURATION

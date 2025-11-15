@@ -44,8 +44,15 @@ sensor:
               if (id(sensor_malfunction).state) {
                 id(sensor_malfunction).publish_state(false);
               }
-              // Note: Temperature-based heating control is handled by ESPHome climate platform
             }
+        # Trigger priority management on every valid temperature update
+        # This ensures relay state is evaluated based on current temperature
+        - if:
+            condition:
+              lambda: |-
+                return !isnan(x);
+            then:
+              - script.execute: manage_heating
 
   # WiFi Signal Strength
   - platform: wifi_signal

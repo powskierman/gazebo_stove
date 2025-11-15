@@ -196,11 +196,15 @@ climate:
     # Heat action triggers priority management instead of directly controlling relay
     # The manage_heating script will decide whether to turn on relay based on priorities
     heat_action:
+      - logger.log: "THERMOSTAT: heat_action triggered"
+      - script.execute: sync_desired_temp
       - script.execute: manage_heating
 
     # Idle action: when thermostat wants to stop heating, also trigger priority management
     # The manage_heating script will turn off relay if no higher priority is active
     idle_action:
+      - logger.log: "THERMOSTAT: idle_action triggered"
+      - script.execute: sync_desired_temp
       - script.execute: manage_heating
 
 # ============================================================================
