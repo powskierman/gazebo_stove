@@ -188,11 +188,20 @@ interval:
             - lambda: |-
                 id(presence_mode).publish_state("away");
 
-  # Run priority check every 10 seconds to handle cases where desired temp < current temp
-  # This ensures heating-only system turns off immediately when setpoint is lowered
-  - interval: 10s
-    then:
-      - script.execute: manage_heating
+# ============================================================================
+# EVENT-DRIVEN PRIORITY SYSTEM
+# ============================================================================
+# The priority system is now fully event-driven instead of polling.
+# It triggers only when relevant state changes occur:
+#
+# Trigger Points:
+# 1. Manual Stop (Priority 1): Triggers in hardware.yaml turn_on/off_action
+# 2. Manual Run (Priority 2): Triggers in hardware.yaml turn_on/off_action
+# 3. Presence Mode (Priority 3): Triggers in entities.yaml set_action
+# 4. Desired Temp (Priority 4): Triggers in entities.yaml set_action
+#
+# Each of these already calls manage_heating in their action handlers.
+# No additional automation needed - all triggers are event-based!
 
 # ============================================================================
 # NOTE: Thermostat Control Architecture
