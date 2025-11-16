@@ -270,14 +270,18 @@ Complete reference guide to all documentation in the GazeboStove project.
 - HA integration: [HASS_IMPLEMENTATION_GUIDE.md](HASS_IMPLEMENTATION_GUIDE.md) - Implementation Steps
 
 **Troubleshooting**:
+- Comprehensive guide: [TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md) - All components, issues, and solutions
 - Common issues: [README.md](README.md) - Troubleshooting section
 - Debugging: [EVENT_DRIVEN_PRIORITY_SYSTEM.md](EVENT_DRIVEN_PRIORITY_SYSTEM.md) - Debugging Event-Driven System
 - Schedule issues: [SCHEDULE_MIGRATION_GUIDE.md](SCHEDULE_MIGRATION_GUIDE.md) - Troubleshooting
+- Original guide: [Docs/THERMOSTAT_TROUBLESHOOTING.md](Docs/THERMOSTAT_TROUBLESHOOTING.md) - Thermostat-specific (reference)
 
 ### By File Location
 
 **Root Directory Documents**:
 - `README.md` - Start here
+- `TESTING_SUMMARY.md` - Test results (all passed ✅)
+- `TROUBLESHOOTING_GUIDE.md` - Comprehensive troubleshooting (NEW)
 - `IMPLEMENTATION_COMPLETE.md` - What's been done
 - `EVENT_DRIVEN_PRIORITY_SYSTEM.md` - How it works
 - `SCHEDULE_IMPLEMENTATION_ANALYSIS.md` - Why design is optimal
