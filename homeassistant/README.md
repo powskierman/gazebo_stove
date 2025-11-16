@@ -8,12 +8,34 @@ This directory contains Home Assistant configuration files for implementing the 
 
 ## Files
 
-- **`configuration.yaml`** - Time input entities, sensor platforms, thermostat template
-  - Includes: Schedule time helpers, date/time sensors, weather integration, thermostat UI
+- **`configuration.yaml`** - Time input entities, sensor platforms, thermostat configuration
+  - Includes: Schedule time helpers, date/time sensors, weather integration, thermostat setup
+  - Compatible with all Home Assistant versions (2024.5 and later)
 - **`automations.yaml`** - Two automations for time-based mode switching
 - **`dashboard_card.yaml`** - Dashboard card for schedule control
-- **`SENSOR_ENTITIES_GUIDE.md`** - Guide for date/time and weather sensors (NEW)
+- **`SENSOR_ENTITIES_GUIDE.md`** - Guide for date/time and weather sensors
+- **`FIX_TEMPLATE_CLIMATE_ERROR.md`** - Fix guide for template climate compatibility (if needed)
 - **`README.md`** - This file
+
+---
+
+## Configuration Error: Template Climate Not Supported?
+
+If you get an error like:
+```
+Invalid config for 'template' at configuration.yaml, line 53:
+'climate' is an invalid option for 'template'
+```
+
+**This is normal for Home Assistant 2024.5 and earlier.** The `template: - climate:` syntax is only supported in Home Assistant 2024.6+.
+
+**Quick Fix:** Just **restart Home Assistant** - the problematic configuration is already commented out.
+
+**For more help:** See **[FIX_TEMPLATE_CLIMATE_ERROR.md](FIX_TEMPLATE_CLIMATE_ERROR.md)** for:
+- Three different thermostat setup options
+- Which option to choose for your HA version
+- Step-by-step implementation
+- Troubleshooting tips
 
 ---
 
