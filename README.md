@@ -1,6 +1,6 @@
 # GazeboStove - ESPHome Propane Stove Heating Control
 
-**Status**: ✅ Production Ready | **Updated**: November 15, 2025
+**Status**: ✅ Production Ready | **Updated**: November 16, 2025
 
 A comprehensive ESPHome-based heating control system for a propane stove with independent operation, event-driven priority management, and full Home Assistant integration.
 
@@ -130,8 +130,10 @@ Each priority level triggers only when its state changes, not continuously.
 ## Documentation Structure
 
 ### For Everyone
-- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - Summary of optimization work
 - **[README.md](README.md)** (this file) - Project overview
+- **[TESTING_SUMMARY.md](TESTING_SUMMARY.md)** - Latest test results (all systems verified)
+- **[TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md)** - Comprehensive troubleshooting reference
+- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - Summary of optimization work
 
 ### For Home Assistant Users
 - **[HASS_IMPLEMENTATION_GUIDE.md](HASS_IMPLEMENTATION_GUIDE.md)** - Migration guide
@@ -252,28 +254,19 @@ Result: Heating disabled (standby mode)
 
 ## Troubleshooting
 
-### Device Not Responding
-1. Check WiFi connection (LED status)
-2. Verify network connectivity
-3. Check ESPHome logs: `esphome logs gazebo_stove.yaml`
+For comprehensive troubleshooting information, see **[TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md)**
 
-### Schedule Not Triggering
-1. Verify NTP time is synced (check logs)
-2. Confirm schedule_enabled switch is ON
-3. Check configured times match your desired schedule
-4. Device responds to local time, not UTC
+Quick diagnosis:
+- **Device Not Responding**: Check WiFi LED and ESPHome logs
+- **Schedule Not Triggering**: Verify NTP time sync and schedule_enabled switch
+- **Temperature Not Updating**: Check DS18B20 sensor connection (GPIO4)
+- **Home Assistant Not Connected**: Verify ESPHome API is configured
 
-### Temperature Not Updating
-1. Check DS18B20 sensor connection (GPIO4)
-2. Verify One-Wire bus is functioning
-3. Look for malfunction warnings in logs
-4. Check sensor calibration offset
-
-### Home Assistant Not Connected
-1. Verify ESPHome API is configured
-2. Check Home Assistant native API integration
-3. Restart Home Assistant if needed
-4. Device still works independently without HA
+The troubleshooting guide includes:
+- Symptom-based diagnosis tables
+- Component-specific debugging procedures
+- Log filtering commands for advanced debugging
+- System health check checklist
 
 ---
 
@@ -357,12 +350,13 @@ All ESPHome configuration files are in `includes/`:
 
 ✅ **Complete and Production Ready**
 
-Latest changes:
-- Event-driven architecture (no polling)
-- Schedule migrated to ESPHome (device independent)
-- Manual Run timeout optimized (delay-based)
-- Dead code removed
-- Comprehensive documentation
+Latest changes (November 16, 2025):
+- Relay control system verified and optimized
+- All 4 priority levels tested and working
+- Comprehensive troubleshooting guide created
+- Documentation reviewed and cleaned up
+- Phase history archived for reference
+- Testing summary published (all tests passing)
 - Ready for immediate deployment
 
 ---
