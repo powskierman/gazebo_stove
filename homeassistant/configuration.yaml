@@ -11,6 +11,48 @@
 # Common patterns: gazebo_stove, gazebo-stove, or check your entities list
 #
 # ============================================================================
+# DATE/TIME SENSORS - System Time and Date Information
+# ============================================================================
+# Creates the following sensor entities:
+#   - sensor.date_time (datetime format)
+#   - sensor.date (date only)
+#   - sensor.time (time only)
+#   - sensor.date_time_utc (UTC datetime)
+#   - sensor.date_time_iso (ISO format)
+#   - sensor.time_date (time and date combined)
+#   - sensor.time_utc (UTC time only)
+
+sensor:
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'date_time_utc'
+      - 'date_time_iso'
+      - 'time_date'
+      - 'time_utc'
+
+# ============================================================================
+# WEATHER SENSORS - Open-Meteo Integration for Outdoor Temperature/Humidity
+# ============================================================================
+# Requires: Open-Meteo integration installed (free, no API key needed)
+# Creates the following entities:
+#   - weather.openmeteo (primary weather integration)
+#   - sensor.outside_temperature_deck (current outdoor temperature)
+#   - sensor.outside_humidity_deck (current outdoor humidity)
+#
+# NOTE: These use the Open-Meteo free API (no registration required)
+# To set up:
+# 1. Go to Settings → Devices & Services → Create Automation
+# 2. Search for "Open-Meteo" integration
+# 3. Configure with your latitude/longitude
+# 4. Adjust entity names if different from examples above
+
+weather:
+  - platform: openmeteo
+
+# ============================================================================
 # SCHEDULE CONTROL - Enable/Disable Schedule Feature (Priority 3)
 # ============================================================================
 
