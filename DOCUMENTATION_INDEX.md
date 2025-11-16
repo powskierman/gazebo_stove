@@ -1,8 +1,15 @@
 # GazeboStove Documentation Index
 
-**Last Updated**: November 15, 2025 | **Status**: ✅ Complete & Current
+**Last Updated**: November 16, 2025 | **Status**: ✅ Complete & Cleaned Up
 
 Complete reference guide to all documentation in the GazeboStove project.
+
+**🔄 Recent Updates (November 16, 2025)**:
+- ✅ Removed 5 redundant files (HASS_IMPLEMENTATION_GUIDE 2, automations_FIXED, etc.)
+- ✅ Archived 12 Phase documentation files to `ARCHIVE/PHASE_HISTORY/`
+- ✅ Added TESTING_SUMMARY.md with latest test results (all tests passed ✅)
+- ✅ Added CLEANUP_ANALYSIS.md for documentation review findings
+- ✅ Updated documentation index
 
 ---
 
@@ -341,12 +348,28 @@ Docs/README.md
 | Document | Lines | Focus | Audience |
 |----------|-------|-------|----------|
 | README.md | 414 | Overview | All |
+| TESTING_SUMMARY.md | 250+ | Test Results | All |
 | IMPLEMENTATION_COMPLETE.md | 291 | Summary | All |
 | EVENT_DRIVEN_PRIORITY_SYSTEM.md | 510 | Architecture | Developers |
 | SCHEDULE_IMPLEMENTATION_ANALYSIS.md | 378 | Design | Architects |
 | SCHEDULE_MIGRATION_GUIDE.md | 310 | Migration | Integrators |
 | HASS_IMPLEMENTATION_GUIDE.md | 396 | Integration | Users |
-| **Total** | **~2,700** | **Complete** | **Everyone** |
+| CLEANUP_ANALYSIS.md | 350+ | Documentation Review | All |
+| **Archived (Phase History)** | **12 files** | **Development Phases** | **Reference** |
+| **Total Active** | **~3,000** | **Complete** | **Everyone** |
+
+---
+
+## 📚 Archived Documentation
+
+All Phase development documentation has been archived in `ARCHIVE/PHASE_HISTORY/` for historical reference:
+- PHASE_1_IMPLEMENTATION.md
+- PHASE_2_THERMOSTAT.md & PHASE_2_CORRECTION_SUMMARY.md
+- PHASE_3_IMPLEMENTATION.md & related (4 files)
+- PHASE_4_IMPLEMENTATION.md & related (3 files)
+- PRIORITY_4_IMPLEMENTATION.md
+
+See `ARCHIVE/PHASE_HISTORY/INDEX.md` for details on development phases.
 
 ---
 
