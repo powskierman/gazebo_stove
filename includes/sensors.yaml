@@ -61,8 +61,9 @@ sensor:
                     climate->publish_state();
                     ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
                   }
-              # Check if relay should be on/off based on current climate state
-              - script.execute: apply_priority_overrides
+              # This script is no longer needed here, the climate platform will
+              # automatically re-evaluate its state when the sensor value changes.
+              # - script.execute: manage_heating
 
   # WiFi Signal Strength
   - platform: wifi_signal
