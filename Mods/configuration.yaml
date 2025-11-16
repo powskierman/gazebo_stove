@@ -61,47 +61,9 @@ input_boolean:
 # ============================================================================
 # GAZEBO STOVE HEATING CONTROL - ESPHome Integration
 # ============================================================================
-# Updated with actual entity IDs from ESPHome device
-
-template:
-  - climate:
-      - name: "Propane Stove Thermostat"
-        unique_id: gazebo_propane_stove_thermostat
-        current_temperature: "{{ states('sensor.gazebo_stove_gazebo_temperature') | float(20) }}"
-        target_temperature: "{{ states('number.gazebo_stove_desired_temperature') | float(22) }}"
-        target_temperature_step: 0.5
-        min_temp: 5
-        max_temp: 35
-        temperature_unit: C
-        hvac_modes:
-          - "heat"
-          - "off"
-        preset_modes:
-          - "home"
-          - "away"
-        preset_mode: "{{ 'home' if states('select.gazebo_stove_presence_mode') == 'home' else 'away' }}"
-        set_temperature:
-          service: number.set_value
-          target:
-            entity_id: number.gazebo_stove_desired_temperature
-          data:
-            value: "{{ temperature }}"
-        set_preset_mode:
-          service: select.select_option
-          target:
-            entity_id: select.gazebo_stove_presence_mode
-          data:
-            option: "{{ preset_mode }}"
-        hvac_action: >-
-          {%- if states('switch.gazebo_stove_manual_stop') == 'on' %}
-            off
-          {%- elif states('select.gazebo_stove_presence_mode') == 'away' %}
-            off
-          {%- elif states('switch.gazebo_stove_propane_stove_relay') == 'on' %}
-            heating
-          {%- else %}
-            idle
-          {%- endif %}
+# Single source of truth: ESPHome priority system controls the stove
+# Home Assistant displays individual entities (desired_temp, mode, relay state)
+# No need for a climate entity - the card shows all necessary controls
 
 # Text to speech
 tts:

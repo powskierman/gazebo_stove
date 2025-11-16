@@ -81,7 +81,7 @@ switch:
                   id(manual_run).publish_state(true);  // Explicitly publish ON state
                   ESP_LOGI("MANUAL_RUN", "Activated - Relay ON (15-min delay timer started)");
               - script.execute: manual_run_timer  # Start 15-minute delay timer
-              - script.execute: update_relay_state
+              - script.execute: apply_priority_overrides
     turn_off_action:
       then:
         - logger.log: "Manual Run disabled by user"
@@ -91,7 +91,7 @@ switch:
             id(relay).turn_off();
             ESP_LOGI("MANUAL_RUN", "Deactivated by user - Relay OFF");
         - script.stop: manual_run_timer  # Stop the timer if still running
-        - script.execute: manage_heating
+        - script.execute: apply_priority_overrides
 
   # Manual Stop Override (Force heating off indefinitely)
   - platform: template
@@ -109,14 +109,14 @@ switch:
             id(relay).turn_off();
             id(manual_stop).publish_state(true);  // Explicitly publish ON state
             ESP_LOGI("MANUAL_STOP", "Force Off enabled - Relay OFF indefinitely");
-        - script.execute: update_relay_state
+        - script.execute: apply_priority_overrides
     turn_off_action:
       then:
         - logger.log: "Force Off disabled - Restoring normal control"
         - lambda: |-
             id(manual_stop_active) = false;
             ESP_LOGI("MANUAL_STOP", "Force Off disabled - Normal control resumed");
-        - script.execute: manage_heating
+        - script.execute: apply_priority_overrides
 
   # Heating Schedule Enable/Disable
   - platform: template

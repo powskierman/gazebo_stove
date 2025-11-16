@@ -13,9 +13,11 @@ sensor:
     resolution: 12
     update_interval: 10s
     filters:
-      # 10-second moving average to smooth readings
-      - throttle_average: 10s
-      # Apply temperature offset/calibration
+      # Moving average to smooth readings (recalculates when offset changes)
+      - sliding_window_moving_average:
+          window_size: 10
+          send_every: 1
+      # Apply temperature offset/calibration (recalculates dynamically)
       - lambda: |-
           return x + id(temp_offset).state;
       # Clamp to valid range (-40°C to 85°C)
@@ -45,14 +47,22 @@ sensor:
                 id(sensor_malfunction).publish_state(false);
               }
             }
-        # Trigger priority management on every valid temperature update
-        # This ensures relay state is evaluated based on current temperature
+        # Force climate platform to republish state with updated temperature
+        # This ensures the climate entity's "Currently" temperature updates in Home Assistant
+        # AND it triggers the climate platform to re-evaluate if it should heat/idle
         - if:
             condition:
               lambda: |-
                 return !isnan(x);
             then:
-              - script.execute: manage_heating
+              - lambda: |-
+                  auto* climate = id(propane_stove_thermostat);
+                  if (climate != nullptr) {
+                    climate->publish_state();
+                    ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
+                  }
+              # Check if relay should be on/off based on current climate state
+              - script.execute: apply_priority_overrides
 
   # WiFi Signal Strength
   - platform: wifi_signal

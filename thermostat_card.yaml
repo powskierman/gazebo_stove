@@ -2,21 +2,70 @@
 # HOME ASSISTANT THERMOSTAT CARD CONFIGURATION
 # ============================================================================
 # Lovelace card YAML for the Propane Stove Thermostat
-# 
-# Usage: Add this as a card in your Lovelace dashboard
-# 
-# IMPORTANT: After uploading ESPHome config, verify the entity exists:
-# 1. Go to Settings > Devices & Services > ESPHome
-# 2. Find your "gazebo-stove" device
-# 3. Check the entities list for "Propane Stove Thermostat"
-# 4. The entity ID will be shown there (likely: climate.propane_stove_thermostat)
-# 
-# If entity doesn't exist:
-# - Make sure you've uploaded the new ESPHome configuration
-# - Check that the device is online and connected
-# - Restart Home Assistant if needed
+#
+# This is now an entities card (not a thermostat card) because we removed
+# the ESPHome climate platform to use a single source of truth (the priority system)
+#
+# The card displays:
+# - Current temperature (sensor)
+# - Desired temperature (adjustable slider)
+# - Presence mode (home/away selector)
+# - Relay status (shows actual stove state)
+# - Schedule controls
+# - Manual overrides (Emergency Heat, Force Off)
 # ============================================================================
 
-type: thermostat
-entity: climate.gazebo_stove_propane_stove_thermostat
-
+type: entities
+title: Gazebo Stove - Controls & Status
+entities:
+  - entity: sensor.gazebo_stove_gazebo_temperature
+    name: Current Temperature
+    icon: mdi:thermometer
+  - entity: number.gazebo_stove_desired_temperature
+    name: Desired Temperature
+    icon: mdi:thermometer-plus
+  - entity: switch.gazebo_stove_propane_stove_relay
+    name: Relay Status (Stove On/Off)
+    icon: mdi:fire
+  - type: divider
+  - entity: select.gazebo_stove_presence_mode
+    name: Current Mode (Home/Away)
+    icon: mdi:home-account
+  - entity: switch.gazebo_stove_heating_schedule
+    name: Heating Schedule
+    icon: mdi:calendar-clock
+  - type: divider
+  - entity: number.gazebo_stove_home_mode_time_hour
+    name: Home Mode Hour (0-23)
+    icon: mdi:home-clock
+  - entity: number.gazebo_stove_home_mode_time_minute
+    name: Home Mode Minute (0-59)
+    icon: mdi:home-clock
+  - entity: number.gazebo_stove_away_mode_time_hour
+    name: Away Mode Hour (0-23)
+    icon: mdi:clock-out
+  - entity: number.gazebo_stove_away_mode_time_minute
+    name: Away Mode Minute (0-59)
+    icon: mdi:clock-out
+  - type: divider
+  - entity: switch.gazebo_stove_manual_run
+    name: Emergency Heat (15 min)
+    icon: mdi:fire-alert
+  - entity: switch.gazebo_stove_manual_stop
+    name: Force Off (Highest Priority)
+    icon: mdi:power-off
+  - type: divider
+  - entity: number.gazebo_stove_temperature_offset
+    name: Temperature Offset (-5 to +5°C)
+    icon: mdi:pencil
+  - entity: number.gazebo_stove_heating_hysteresis
+    name: Heating Hysteresis
+    icon: mdi:sine-wave
+  - type: divider
+  - entity: binary_sensor.gazebo_stove_sensor_malfunction
+    name: Sensor Malfunction
+    icon: mdi:alert-circle
+  - entity: sensor.gazebo_stove_system_status
+    name: System Status
+    icon: mdi:information
+show_header_toggle: false

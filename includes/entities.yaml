@@ -39,27 +39,21 @@ number:
         - logger.log:
             format: "Desired temperature set to %.1f°C"
             args: ["x"]
+        # Update climate platform's target temperature
+        - lambda: |-
+            auto* climate = id(propane_stove_thermostat);
+            if (climate != nullptr) {
+              climate->target_temperature = x;
+              climate->publish_state();
+              ESP_LOGD("TEMP_SYNC", "Climate platform target updated to %.1f°C", x);
+            }
         # Update Nextion display if available
         - lambda: |-
             if (id(gazebo_nextion).is_failed() == false) {
               id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
             }
-        # Small delay to allow state to sync
-        - delay: 50ms
-        # Sync ESPHome climate platform target temperature with desired_temp
-        # This ensures climate platform uses the same target as the number entity
-        # The climate platform receives updates from Home Assistant API, but we also sync here
-        # to ensure consistency when desired_temp is changed directly
-        - lambda: |-
-            // Set the climate platform's target temperature to match desired_temp
-            auto* climate = id(propane_stove_thermostat);
-            if (climate != nullptr) {
-              climate->target_temperature = x;
-              climate->publish_state();
-              ESP_LOGD("TEMP_SYNC", "Synced climate platform target to %.1f°C", x);
-            }
-        # Trigger priority check to handle heating-only logic (current > desired = turn off)
-        - script.execute: manage_heating
+        # Apply priority overrides to enforce relay state based on new setpoint
+        - script.execute: apply_priority_overrides
 
   # Temperature Offset (Calibration)
   - platform: template
@@ -72,11 +66,16 @@ number:
     icon: "mdi:plus-minus"
     restore_value: yes
     initial_value: 0
+    optimistic: true
     set_action:
       then:
         - logger.log:
             format: "Temperature offset set to %.1f°C"
             args: ["x"]
+        # Update the internal value and publish state
+        - lambda: |-
+            id(temp_offset).publish_state(x);
+            ESP_LOGI("TEMP_OFFSET", "Offset changed to %.1f°C", x);
 
   # Heating Hysteresis (deadband for stove control)
   - platform: template
@@ -174,14 +173,18 @@ number:
             args: ["x"]
 
 # ============================================================================
-# CLIMATE ENTITY - Thermostat Control
+# CLIMATE ENTITY - Thermostat Control (Single Source of Truth)
 # ============================================================================
-# ESPHome climate platform provides thermostat card UI in Home Assistant and
-# handles normal temperature control based on the desired_temp setpoint.
+# ESPHome climate platform is the single decision maker:
+# - Compares desired_temp vs current_temp
+# - Implements hysteresis for stable control
+# - Calls heat_action when heating is needed
+# - Calls idle_action when heating should stop
 #
-# The priority management system (manage_heating script in automation.yaml)
-# overrides this when higher-priority modes are active (Manual Stop, Manual Run,
-# or Away Mode scheduling).
+# Priority system (in automation.yaml) wraps around climate:
+# - Override heat_action when Manual Stop, Manual Run, or Away Mode is active
+# - Climate platform is NOT bypassed, just conditionally overridden
+# - This keeps climate as single source of truth while adding application-specific logic
 
 climate:
   - platform: thermostat
@@ -193,19 +196,27 @@ climate:
     min_heating_run_time: 30s
     min_idle_time: 5s
 
-    # Heat action triggers priority management instead of directly controlling relay
-    # The manage_heating script will decide whether to turn on relay based on priorities
+    # Heat action: Turn relay ON when thermostat decides to heat
     heat_action:
       - logger.log: "THERMOSTAT: heat_action triggered"
-      - script.execute: sync_desired_temp
-      - script.execute: manage_heating
+      # Sync desired_temp number entity with climate target temperature
+      - lambda: |-
+          id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
+          ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
+                   id(propane_stove_thermostat).target_temperature);
+      # Apply priority overrides - if no overrides, relay will stay ON
+      - script.execute: apply_priority_overrides
 
-    # Idle action: when thermostat wants to stop heating, also trigger priority management
-    # The manage_heating script will turn off relay if no higher priority is active
+    # Idle action: Turn relay OFF when thermostat decides to stop heating
     idle_action:
       - logger.log: "THERMOSTAT: idle_action triggered"
-      - script.execute: sync_desired_temp
-      - script.execute: manage_heating
+      # Sync desired_temp number entity with climate target temperature
+      - lambda: |-
+          id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
+          ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
+                   id(propane_stove_thermostat).target_temperature);
+      # Apply priority overrides - if no overrides, relay will turn OFF
+      - script.execute: apply_priority_overrides
 
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
@@ -224,12 +235,15 @@ select:
     set_action:
       then:
         - logger.log:
-            format: "Presence mode set to: %s"
+            format: "Presence mode set to: %s (manual override)"
             args: ["x.c_str()"]
         - lambda: |-
             id(presence_mode_state) = x;
-        # Re-evaluate heating when presence changes (priority override)
-        - script.execute: manage_heating
+            id(presence_mode_manual) = true;
+            id(presence_mode).publish_state(x);
+            ESP_LOGI("PRESENCE", "Manual mode set - blocking schedule overrides");
+        # Apply priority overrides when presence mode changes
+        - script.execute: apply_priority_overrides
 
 # ============================================================================
 # SWITCH ENTITIES - Manual Overrides & Schedule Control
@@ -303,3 +317,11 @@ globals:
     type: std::string
     restore_value: yes
     initial_value: '"home"'
+
+  # Flag to track if presence mode was manually set (not by schedule)
+  # When true, the schedule automation will not override the mode
+  # Reset to false when schedule changes the mode
+  - id: presence_mode_manual
+    type: bool
+    restore_value: no
+    initial_value: 'false'

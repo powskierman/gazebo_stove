@@ -23,109 +23,73 @@ script:
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
           }
 
-  # Manage heating with priority logic (overrides thermostat)
-  # Priority: Force Off (Manual Stop) > Emergency Heat (Manual Run) > Schedule (Away Mode) > Thermostat
-  # This script only handles priority overrides - normal temperature control is done by the thermostat
-  - id: manage_heating
+  # Apply Priority Overrides
+  # Climate platform is the single source of truth for heating decisions
+  # This script ONLY overrides the climate platform when priorities dictate:
+  # Priority 1: Force Off (Manual Stop) - Turns relay OFF regardless
+  # Priority 2: Emergency Heat (Manual Run) - Turns relay ON for 15 minutes
+  # Priority 3: Away Mode - Turns relay OFF when away
+  # Priority 4: Climate control - Climate platform decides (normal operation)
+  - id: apply_priority_overrides
     then:
       - lambda: |-
           bool away_mode = (id(presence_mode).state == "away");
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
 
-          ESP_LOGI("PRIORITY", "=== MANAGE_HEATING CALLED ===");
-          ESP_LOGI("PRIORITY", "Presence Mode: %s", id(presence_mode).state.c_str());
-          ESP_LOGI("PRIORITY", "Away=%s, ManualStop=%s, ManualRun=%s",
-                   away_mode ? "true" : "false",
+          ESP_LOGI("PRIORITY", "=== APPLY_PRIORITY_OVERRIDES CALLED ===");
+          ESP_LOGI("PRIORITY", "ManualStop=%s, ManualRun=%s, Away=%s",
                    manual_stop ? "true" : "false",
-                   manual_run ? "true" : "false");
-          ESP_LOGI("PRIORITY", "Relay State: %s", id(relay).state ? "ON" : "OFF");
+                   manual_run ? "true" : "false",
+                   away_mode ? "true" : "false");
 
           // Priority 1: Force Off (Manual Stop) - HIGHEST PRIORITY
           if (manual_stop) {
             if (id(relay).state) {
               id(relay).turn_off();
-              ESP_LOGI("PRIORITY", "Force Off: Relay OFF (priority 1)");
+              ESP_LOGI("PRIORITY", "Priority 1: Force Off - Relay OFF");
             }
             return;
           }
 
           // Priority 2: Emergency Heat (Manual Run)
-          // The manual_run_timer script handles the 15-minute auto-disable
-          // This priority just needs to keep relay ON while manual_run_active is true
           if (manual_run) {
             if (!id(relay).state) {
               id(relay).turn_on();
-              ESP_LOGI("PRIORITY", "Emergency Heat: Relay ON (priority 2)");
+              ESP_LOGI("PRIORITY", "Priority 2: Emergency Heat - Relay ON");
             }
             return;
           }
 
-          // Priority 3: Schedule (Away Mode)
+          // Priority 3: Away Mode - Override to OFF
           if (away_mode) {
             if (id(relay).state) {
               id(relay).turn_off();
-              ESP_LOGI("PRIORITY", "Schedule: Standby mode - Relay OFF (priority 3)");
+              ESP_LOGI("PRIORITY", "Priority 3: Away Mode - Relay OFF");
             }
             return;
           }
 
-          // Priority 4: Thermostat control
-          // ESPHome climate platform handles thermostat control, but we need to handle
-          // the case where desired temp < current temp (heating-only system should turn off)
-          float current_temp = id(gazebo_temp).state;
-          float desired = id(desired_temp).state;
-
-          ESP_LOGI("PRIORITY", "Priority 4 - Current: %.1f°C, Desired: %.1f°C",
-                   current_temp, desired);
-
-          // For heating-only system: if current temp > desired temp, turn off immediately
-          // This handles the case where user lowers setpoint below current temperature
-          // The climate platform might not handle this immediately due to min_heating_run_time
-          if (current_temp > desired) {
-            if (id(relay).state) {
-              id(relay).turn_off();
-              ESP_LOGI("PRIORITY", "Desired temp (%.1f°C) < Current temp (%.1f°C) - Relay OFF (heating-only)",
-                       desired, current_temp);
-            }
-            // Return here - don't let climate platform turn it back on while current > desired
-            return;
-          }
-
-          // Priority 4: Thermostat normal control
-          // If current temp < desired temp, turn on the relay to heat
-          if (current_temp < desired) {
-            if (!id(relay).state) {
-              id(relay).turn_on();
-              ESP_LOGI("PRIORITY", "Thermostat heating: Current (%.1f°C) < Desired (%.1f°C) - Relay ON (priority 4)",
-                       current_temp, desired);
-            } else {
-              ESP_LOGD("PRIORITY", "Thermostat heating: Relay already ON");
-            }
-            return;
-          }
-
-          // If we get here, current temp == desired temp (within hysteresis)
-          // Keep relay on to maintain temperature
-          ESP_LOGD("PRIORITY", "Current (%.1f°C) == Desired (%.1f°C) - Holding temperature",
-                   current_temp, desired);
-
-  # Sync desired_temp with climate platform's target temperature
-  # Called when climate platform's target changes (via Home Assistant)
-  - id: sync_desired_temp
-    then:
-      - lambda: |-
+          // Priority 4: Climate control (default)
+          // Climate platform's heat_action/idle_action call this script
+          // We need to actually control the relay based on what the climate platform wants
+          // Check what state the climate platform is in
           auto* climate = id(propane_stove_thermostat);
           if (climate != nullptr) {
-            float target = climate->target_temperature;
-            ESP_LOGI("TEMP_SYNC", "Syncing desired_temp to climate target: %.1f°C", target);
-            id(desired_temp).publish_state(target);
+            // If climate is in HEAT mode, keep relay ON
+            if (climate->mode == CLIMATE_MODE_HEAT) {
+              if (!id(relay).state) {
+                id(relay).turn_on();
+                ESP_LOGI("PRIORITY", "Priority 4: Climate heating - Relay ON");
+              }
+            } else {
+              // If climate is in OFF mode or other, turn relay OFF
+              if (id(relay).state) {
+                id(relay).turn_off();
+                ESP_LOGI("PRIORITY", "Priority 4: Climate idle - Relay OFF");
+              }
+            }
           }
-
-  # Update relay state (used by manual overrides to trigger priority re-evaluation)
-  - id: update_relay_state
-    then:
-      - script.execute: manage_heating
 
   # Manual Run Timer - Implements 15-minute auto-off using delay (replaces polling)
   # This script is started when Manual Run is activated and automatically
@@ -137,7 +101,7 @@ script:
           ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling Manual Run");
           id(manual_run_active) = false;
           id(manual_run).publish_state(false);
-      - script.execute: manage_heating
+      - script.execute: apply_priority_overrides
 
 
 # ============================================================================
@@ -194,9 +158,19 @@ interval:
 
                 if (in_home_window) {
                   if (id(presence_mode).state != "home") {
+                    if (id(presence_mode_manual)) {
+                      ESP_LOGI("SCHEDULE", "In home window but mode manually set to %s - respecting manual override",
+                               id(presence_mode).state.c_str());
+                      return false;  // Don't override manual selection
+                    }
                     ESP_LOGI("SCHEDULE", "Triggering Home Mode switch");
                     return true;  // Time to switch to home mode
                   } else {
+                    // Already in home mode - reset manual flag to allow schedule to manage this mode
+                    if (id(presence_mode_manual)) {
+                      ESP_LOGI("SCHEDULE", "Mode already home and in home window - resetting manual override flag");
+                      id(presence_mode_manual) = false;
+                    }
                     ESP_LOGD("SCHEDULE", "Already in home mode, skipping");
                   }
                 }
@@ -208,7 +182,9 @@ interval:
                 auto select = id(presence_mode);
                 select->publish_state("home");
                 id(presence_mode_state) = "home";
-                id(manage_heating)->execute();
+                id(presence_mode_manual) = false;  // Reset manual flag - schedule took control
+                ESP_LOGI("SCHEDULE", "Schedule took control - resetting manual override flag");
+                id(apply_priority_overrides)->execute();
 
   # Check for away mode schedule separately (every minute)
   - interval: 1min
@@ -256,9 +232,19 @@ interval:
 
                 if (in_away_window) {
                   if (id(presence_mode).state != "away") {
+                    if (id(presence_mode_manual)) {
+                      ESP_LOGI("SCHEDULE", "In away window but mode manually set to %s - respecting manual override",
+                               id(presence_mode).state.c_str());
+                      return false;  // Don't override manual selection
+                    }
                     ESP_LOGI("SCHEDULE", "Triggering Away Mode switch");
                     return true;  // Time to switch to away mode
                   } else {
+                    // Already in away mode - reset manual flag to allow schedule to manage this mode
+                    if (id(presence_mode_manual)) {
+                      ESP_LOGI("SCHEDULE", "Mode already away and in away window - resetting manual override flag");
+                      id(presence_mode_manual) = false;
+                    }
                     ESP_LOGD("SCHEDULE", "Already in away mode, skipping");
                   }
                 }
@@ -270,7 +256,9 @@ interval:
                 auto select = id(presence_mode);
                 select->publish_state("away");
                 id(presence_mode_state) = "away";
-                id(manage_heating)->execute();
+                id(presence_mode_manual) = false;  // Reset manual flag - schedule took control
+                ESP_LOGI("SCHEDULE", "Schedule took control - resetting manual override flag");
+                id(apply_priority_overrides)->execute();
 
 # ============================================================================
 # EVENT-DRIVEN PRIORITY SYSTEM

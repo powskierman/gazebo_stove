@@ -1,0 +1,26 @@
+# ============================================================================
+# MUSHROOM THERMOSTAT CARD
+# ============================================================================
+# Install: Add custom repository in HACS
+# https://github.com/piitaya/lovelace-mushroom
+#
+# This card shows a clean, modern thermostat display with:
+# - Current temperature display
+# - Desired temperature adjustment with +/- buttons
+# - Mode switcher (home/away)
+# - Status indicators
+# - Works reliably with custom entities
+# ============================================================================
+
+type: custom:mushroom-thermostat-card
+entity: number.gazebo_stove_desired_temperature
+name: Gazebo Stove Thermostat
+show_temperature_control: true
+icon: mdi:thermometer
+layout: default
+tap_action:
+  action: none
+hold_action:
+  action: none
+double_tap_action:
+  action: none
