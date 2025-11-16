@@ -8,10 +8,37 @@ This directory contains Home Assistant configuration files for implementing the 
 
 ## Files
 
-- **`configuration.yaml`** - Time input entities (Home Mode Time, Away Mode Time)
+- **`configuration.yaml`** - Time input entities, sensor platforms, thermostat template
+  - Includes: Schedule time helpers, date/time sensors, weather integration, thermostat UI
 - **`automations.yaml`** - Two automations for time-based mode switching
 - **`dashboard_card.yaml`** - Dashboard card for schedule control
+- **`SENSOR_ENTITIES_GUIDE.md`** - Guide for date/time and weather sensors (NEW)
 - **`README.md`** - This file
+
+---
+
+## Sensor Entities
+
+This configuration includes date/time and weather sensors:
+
+### Date/Time Sensors (time_date platform)
+- **`sensor.date_time`** - Current date and time (YYYY-MM-DD HH:MM)
+- **`sensor.date`** - Current date only (YYYY-MM-DD)
+- **`sensor.time`** - Current time only (HH:MM)
+- And 4 more format variations
+
+**Setup:** No additional configuration needed - uses Home Assistant's system time
+
+### Weather Sensors (openmeteo platform)
+- **`weather.openmeteo`** - Weather forecast (5-14 days)
+- **`sensor.openmeteo_temperature`** - Current outdoor temperature (°C)
+- **`sensor.openmeteo_humidity`** - Current outdoor humidity (%)
+- **`sensor.openmeteo_wind_speed`** - Wind speed (m/s)
+- And more weather-related attributes
+
+**Setup:** After adding to YAML, configure via Settings → Integrations → Open-Meteo (free API, no key needed)
+
+**See:** [SENSOR_ENTITIES_GUIDE.md](SENSOR_ENTITIES_GUIDE.md) for detailed setup instructions
 
 ---
 
