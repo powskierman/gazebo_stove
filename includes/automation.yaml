@@ -71,23 +71,31 @@ script:
           }
 
           // Priority 4: Climate control (default)
-          // Climate platform's heat_action/idle_action call this script
-          // We need to actually control the relay based on what the climate platform wants
-          // Check what state the climate platform is in
+          // Check if we should heat or idle based on temperature comparison
+          // This ensures correct behavior when desired temp changes
           auto* climate = id(propane_stove_thermostat);
           if (climate != nullptr) {
-            // If climate is in HEAT mode, keep relay ON
-            if (climate->mode == CLIMATE_MODE_HEAT) {
+            float desired = climate->target_temperature;
+            float current = id(gazebo_temp).state;
+
+            // Apply hysteresis: use deadband + overrun for stable control
+            float deadband = 0.5;  // Match thermostat config
+
+            // If desired > current + deadband, we should heat
+            if (desired > (current + deadband)) {
               if (!id(relay).state) {
                 id(relay).turn_on();
-                ESP_LOGI("PRIORITY", "Priority 4: Climate heating - Relay ON");
+                ESP_LOGI("PRIORITY", "Priority 4: Climate heating (desired %.1f > current %.1f + deadband) - Relay ON", desired, current);
               }
-            } else {
-              // If climate is in OFF mode or other, turn relay OFF
+            } else if (desired <= current) {
+              // If desired <= current, we should idle
               if (id(relay).state) {
                 id(relay).turn_off();
-                ESP_LOGI("PRIORITY", "Priority 4: Climate idle - Relay OFF");
+                ESP_LOGI("PRIORITY", "Priority 4: Climate idle (desired %.1f <= current %.1f) - Relay OFF", desired, current);
               }
+            } else {
+              // In deadband zone - don't change relay state to avoid cycling
+              ESP_LOGD("PRIORITY", "Priority 4: In deadband zone (desired %.1f, current %.1f)", desired, current);
             }
           }
 

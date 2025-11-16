@@ -52,8 +52,37 @@ number:
             if (id(gazebo_nextion).is_failed() == false) {
               id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
             }
-        # Apply priority overrides to enforce relay state based on new setpoint
-        - script.execute: apply_priority_overrides
+        # Immediately apply relay state based on new setpoint comparison with current temp
+        # This ensures relay turns off if desired < current, without waiting for idle_action
+        - lambda: |-
+            // Check if any priority overrides are active (prevent overriding their decisions)
+            bool away_mode = (id(presence_mode).state == "away");
+            bool manual_stop = id(manual_stop_active);
+            bool manual_run = id(manual_run_active);
+
+            // Only enforce relay state if no higher priority overrides are active
+            if (!manual_stop && !manual_run && !away_mode) {
+              float desired = x;
+              float current = id(gazebo_temp).state;
+
+              ESP_LOGI("DESIRED_TEMP", "Setpoint changed to %.1f°C, current=%.1f°C", desired, current);
+
+              // If desired <= current, turn relay OFF immediately
+              if (desired <= current) {
+                if (id(relay).state) {
+                  id(relay).turn_off();
+                  ESP_LOGI("DESIRED_TEMP", "Desired <= Current: Relay OFF");
+                }
+              } else {
+                // If desired > current, turn relay ON immediately
+                if (!id(relay).state) {
+                  id(relay).turn_on();
+                  ESP_LOGI("DESIRED_TEMP", "Desired > Current: Relay ON");
+                }
+              }
+            } else {
+              ESP_LOGI("DESIRED_TEMP", "Priority override active - relay control delegated to priority system");
+            }
 
   # Temperature Offset (Calibration)
   - platform: template
