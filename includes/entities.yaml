@@ -52,8 +52,8 @@ number:
             if (id(gazebo_nextion).is_failed() == false) {
               id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
             }
-        # Apply priority overrides to enforce relay state based on new setpoint
-        - script.execute: apply_priority_overrides
+        # The climate platform will automatically re-evaluate upon temperature change.
+        # - script.execute: manage_heating
 
   # Temperature Offset (Calibration)
   - platform: template
@@ -204,8 +204,9 @@ climate:
           id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
           ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
                    id(propane_stove_thermostat).target_temperature);
-      # Apply priority overrides - if no overrides, relay will stay ON
-      - script.execute: apply_priority_overrides
+      # Directly turn the relay on, then let manage_heating apply any overrides.
+      - switch.turn_on: relay
+      - script.execute: manage_heating
 
     # Idle action: Turn relay OFF when thermostat decides to stop heating
     idle_action:
@@ -215,8 +216,9 @@ climate:
           id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
           ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
                    id(propane_stove_thermostat).target_temperature);
-      # Apply priority overrides - if no overrides, relay will turn OFF
-      - script.execute: apply_priority_overrides
+      # Directly turn the relay off, then let manage_heating apply any overrides.
+      - switch.turn_off: relay
+      - script.execute: manage_heating
 
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
@@ -242,8 +244,8 @@ select:
             id(presence_mode_manual) = true;
             id(presence_mode).publish_state(x);
             ESP_LOGI("PRESENCE", "Manual mode set - blocking schedule overrides");
-        # Apply priority overrides when presence mode changes
-        - script.execute: apply_priority_overrides
+        # Re-evaluate heating state when presence mode changes
+        - script.execute: manage_heating
 
 # ============================================================================
 # SWITCH ENTITIES - Manual Overrides & Schedule Control

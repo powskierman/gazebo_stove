@@ -23,14 +23,16 @@ script:
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
           }
 
-  # Apply Priority Overrides
-  # Climate platform is the single source of truth for heating decisions
-  # This script ONLY overrides the climate platform when priorities dictate:
-  # Priority 1: Force Off (Manual Stop) - Turns relay OFF regardless
-  # Priority 2: Emergency Heat (Manual Run) - Turns relay ON for 15 minutes
-  # Priority 3: Away Mode - Turns relay OFF when away
-  # Priority 4: Climate control - Climate platform decides (normal operation)
-  - id: apply_priority_overrides
+  # Manage Heating
+  # This script is the single entry point for all heating state changes.
+  # It applies a priority-based logic to determine the final state of the relay.
+  #
+  # Priority System:
+  # 1. Manual Stop (Force Off): Highest priority, forces the relay OFF.
+  # 2. Manual Run (Emergency Heat): Forces the relay ON for a fixed duration.
+  # 3. Presence Mode (Away): Forces the relay OFF.
+  # 4. Thermostat Control: The climate entity controls the relay based on temperature.
+  - id: manage_heating
     then:
       - lambda: |-
           bool away_mode = (id(presence_mode).state == "away");
@@ -71,25 +73,9 @@ script:
           }
 
           // Priority 4: Climate control (default)
-          // Climate platform's heat_action/idle_action call this script
-          // We need to actually control the relay based on what the climate platform wants
-          // Check what state the climate platform is in
-          auto* climate = id(propane_stove_thermostat);
-          if (climate != nullptr) {
-            // If climate is in HEAT mode, keep relay ON
-            if (climate->mode == CLIMATE_MODE_HEAT) {
-              if (!id(relay).state) {
-                id(relay).turn_on();
-                ESP_LOGI("PRIORITY", "Priority 4: Climate heating - Relay ON");
-              }
-            } else {
-              // If climate is in OFF mode or other, turn relay OFF
-              if (id(relay).state) {
-                id(relay).turn_off();
-                ESP_LOGI("PRIORITY", "Priority 4: Climate idle - Relay OFF");
-              }
-            }
-          }
+          // If no overrides are active, the relay state is determined by the
+          // climate entity's heat_action and idle_action. No further action needed.
+          ESP_LOGI("PRIORITY", "Priority 4: No overrides - Climate platform has control");
 
   # Manual Run Timer - Implements 15-minute auto-off using delay (replaces polling)
   # This script is started when Manual Run is activated and automatically
@@ -101,7 +87,7 @@ script:
           ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling Manual Run");
           id(manual_run_active) = false;
           id(manual_run).publish_state(false);
-      - script.execute: apply_priority_overrides
+      - script.execute: manage_heating
 
 
 # ============================================================================
@@ -119,146 +105,43 @@ script:
 # INTERVAL AUTOMATIONS - Periodic Tasks
 # ============================================================================
 
+# ============================================================================
+
 interval:
-  # Check schedule every minute to trigger home/away mode changes
-  # This compares the current time to the configured schedule times
   - interval: 1min
     then:
       - if:
           condition:
             - lambda: |-
-                if (!id(schedule_enabled).state) return false;  // Skip if schedule disabled
+                return id(schedule_enabled).state && id(sntp_time)->now().is_valid();
+          then:
+            - lambda: |-
+                auto time = id(sntp_time)->now();
+                int current_minute_of_day = time.hour * 60 + time.minute;
 
-                auto time = id(sntp_time);
-                if (time->now().is_valid() == false) return false;  // Skip if time not synced
+                int home_minute_of_day = (int)id(home_mode_hour).state * 60 + (int)id(home_mode_minute).state;
+                int away_minute_of_day = (int)id(away_mode_hour).state * 60 + (int)id(away_mode_minute).state;
 
-                int current_hour = time->now().hour;
-                int current_minute = time->now().minute;
-                int home_hour = (int)id(home_mode_hour).state;
-                int home_minute = (int)id(home_mode_minute).state;
-                int away_hour = (int)id(away_mode_hour).state;
-                int away_minute = (int)id(away_mode_minute).state;
-
-                ESP_LOGD("SCHEDULE", "Home Mode Check: Current %02d:%02d vs Home %02d:%02d vs Away %02d:%02d",
-                         current_hour, current_minute, home_hour, home_minute, away_hour, away_minute);
-
-                // Check if current time is in HOME window:
-                // From home_mode_time up to (but not including) away_mode_time
-                bool at_or_after_home = (current_hour > home_hour) ||
-                                        (current_hour == home_hour && current_minute >= home_minute);
-                bool before_away = (current_hour < away_hour) ||
-                                   (current_hour == away_hour && current_minute < away_minute);
-
-                bool in_home_window = at_or_after_home && before_away;
-
-                ESP_LOGD("SCHEDULE", "At/after home: %s, Before away: %s, In window: %s",
-                         at_or_after_home ? "true" : "false",
-                         before_away ? "true" : "false",
-                         in_home_window ? "true" : "false");
-
-                if (in_home_window) {
-                  if (id(presence_mode).state != "home") {
-                    if (id(presence_mode_manual)) {
-                      ESP_LOGI("SCHEDULE", "In home window but mode manually set to %s - respecting manual override",
-                               id(presence_mode).state.c_str());
-                      return false;  // Don't override manual selection
+                std::string scheduled_mode = "away"; // Default to away
+                if (home_minute_of_day < away_minute_of_day) { // Normal day schedule
+                    if (current_minute_of_day >= home_minute_of_day && current_minute_of_day < away_minute_of_day) {
+                        scheduled_mode = "home";
                     }
-                    ESP_LOGI("SCHEDULE", "Triggering Home Mode switch");
-                    return true;  // Time to switch to home mode
-                  } else {
-                    // Already in home mode - reset manual flag to allow schedule to manage this mode
-                    if (id(presence_mode_manual)) {
-                      ESP_LOGI("SCHEDULE", "Mode already home and in home window - resetting manual override flag");
-                      id(presence_mode_manual) = false;
+                } else { // Overnight schedule
+                    if (current_minute_of_day >= home_minute_of_day || current_minute_of_day < away_minute_of_day) {
+                        scheduled_mode = "home";
                     }
-                    ESP_LOGD("SCHEDULE", "Already in home mode, skipping");
-                  }
                 }
 
-                return false;
-          then:
-            - logger.log: "Schedule: Switching to Home Mode"
-            - lambda: |-
-                auto select = id(presence_mode);
-                select->publish_state("home");
-                id(presence_mode_state) = "home";
-                id(presence_mode_manual) = false;  // Reset manual flag - schedule took control
-                ESP_LOGI("SCHEDULE", "Schedule took control - resetting manual override flag");
-                id(apply_priority_overrides)->execute();
-
-  # Check for away mode schedule separately (every minute)
-  - interval: 1min
-    then:
-      - if:
-          condition:
-            - lambda: |-
-                if (!id(schedule_enabled).state) return false;  // Skip if schedule disabled
-
-                auto time = id(sntp_time);
-                if (time->now().is_valid() == false) return false;  // Skip if time not synced
-
-                int current_hour = time->now().hour;
-                int current_minute = time->now().minute;
-                int home_hour = (int)id(home_mode_hour).state;
-                int home_minute = (int)id(home_mode_minute).state;
-                int away_hour = (int)id(away_mode_hour).state;
-                int away_minute = (int)id(away_mode_minute).state;
-
-                ESP_LOGD("SCHEDULE", "Away Mode Check: Current %02d:%02d vs Home %02d:%02d vs Away %02d:%02d",
-                         current_hour, current_minute, home_hour, home_minute, away_hour, away_minute);
-
-                // Check if current time is in AWAY window:
-                // From away_mode_time up to (but not including) home_mode_time (next day)
-                bool at_or_after_away = (current_hour > away_hour) ||
-                                        (current_hour == away_hour && current_minute >= away_minute);
-                bool before_home = (current_hour < home_hour) ||
-                                   (current_hour == home_hour && current_minute < home_minute);
-
-                // Special case: if away_hour > home_hour, we're in overnight period
-                // e.g., away at 22:00, home at 06:00 - valid times are 22:00-23:59 or 00:00-06:00
-                bool in_away_window;
-                if (away_hour > home_hour) {
-                  // Overnight schedule: away_time to midnight OR midnight to home_time
-                  in_away_window = at_or_after_away || before_home;
+                if (id(presence_mode).state != scheduled_mode) {
+                    if (!id(presence_mode_manual)) {
+                        id(presence_mode).publish_state(scheduled_mode);
+                    }
                 } else {
-                  // Daytime schedule: only valid if after away AND before home
-                  in_away_window = at_or_after_away && before_home;
-                }
-
-                ESP_LOGD("SCHEDULE", "At/after away: %s, Before home: %s, In window: %s",
-                         at_or_after_away ? "true" : "false",
-                         before_home ? "true" : "false",
-                         in_away_window ? "true" : "false");
-
-                if (in_away_window) {
-                  if (id(presence_mode).state != "away") {
                     if (id(presence_mode_manual)) {
-                      ESP_LOGI("SCHEDULE", "In away window but mode manually set to %s - respecting manual override",
-                               id(presence_mode).state.c_str());
-                      return false;  // Don't override manual selection
+                        id(presence_mode_manual) = false;
                     }
-                    ESP_LOGI("SCHEDULE", "Triggering Away Mode switch");
-                    return true;  // Time to switch to away mode
-                  } else {
-                    // Already in away mode - reset manual flag to allow schedule to manage this mode
-                    if (id(presence_mode_manual)) {
-                      ESP_LOGI("SCHEDULE", "Mode already away and in away window - resetting manual override flag");
-                      id(presence_mode_manual) = false;
-                    }
-                    ESP_LOGD("SCHEDULE", "Already in away mode, skipping");
-                  }
                 }
-
-                return false;
-          then:
-            - logger.log: "Schedule: Switching to Away Mode"
-            - lambda: |-
-                auto select = id(presence_mode);
-                select->publish_state("away");
-                id(presence_mode_state) = "away";
-                id(presence_mode_manual) = false;  // Reset manual flag - schedule took control
-                ESP_LOGI("SCHEDULE", "Schedule took control - resetting manual override flag");
-                id(apply_priority_overrides)->execute();
 
 # ============================================================================
 # EVENT-DRIVEN PRIORITY SYSTEM
