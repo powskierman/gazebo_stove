@@ -1,0 +1,509 @@
+# Home Assistant Configuration - MERGED (Nov 14 base + Nov 16 Gazebo improvements)
+default_config:
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+tts:
+  - platform: google_translate
+
+bluetooth:
+
+device_tracker:
+  - platform: bluetooth_le_tracker
+
+sensor:
+  - platform: command_line
+    name: "Last Shell Command"
+    command: "cat /config/last_shell_command.txt"
+
+  # Time and Date Sensors
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'date_time_utc'
+      - 'date_time_iso'
+      - 'time_date'
+      - 'time_utc'
+
+rest:
+  - resource: "https://api.open-meteo.com/v1/forecast?latitude=45.2631&longitude=-71.9788&hourly=apparent_temperature,precipitation_probability,temperature,relative_humidity_2m,weathercode&current=temperature_2m,relative_humidity_2m,apparent_temperature&temperature_unit=celsius&precipitation_unit=mm&timezone=auto&forecast_days=1"
+    scan_interval: 60
+    sensor:
+      - name: "Gazebo Current Temperature"
+        unique_id: gazebo_current_temperature
+        value_template: "{{ value_json['current']['temperature_2m'] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+
+      - name: "Gazebo Current Apparent Temperature"
+        unique_id: gazebo_current_apparent_temperature
+        value_template: "{{ value_json['current']['apparent_temperature'] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+        state_class: measurement
+
+      - name: "Gazebo Current Humidity"
+        unique_id: gazebo_current_humidity
+        value_template: "{{ value_json['current']['relative_humidity_2m'] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+        state_class: measurement
+
+      - name: "Gazebo Hour 0 Feels Like"
+        unique_id: gazebo_hour_0_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][now().hour] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 1 Feels Like"
+        unique_id: gazebo_hour_1_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 1) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 2 Feels Like"
+        unique_id: gazebo_hour_2_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 2) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 3 Feels Like"
+        unique_id: gazebo_hour_3_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 3) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 4 Feels Like"
+        unique_id: gazebo_hour_4_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 4) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 5 Feels Like"
+        unique_id: gazebo_hour_5_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 5) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 6 Feels Like"
+        unique_id: gazebo_hour_6_feels_like
+        value_template: "{{ value_json['hourly']['apparent_temperature'][(now().hour + 6) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 0 Temperature"
+        unique_id: gazebo_hour_0_temperature
+        value_template: "{{ value_json['hourly']['temperature'][now().hour] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 1 Temperature"
+        unique_id: gazebo_hour_1_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 1) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 2 Temperature"
+        unique_id: gazebo_hour_2_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 2) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 3 Temperature"
+        unique_id: gazebo_hour_3_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 3) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 4 Temperature"
+        unique_id: gazebo_hour_4_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 4) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 5 Temperature"
+        unique_id: gazebo_hour_5_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 5) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 6 Temperature"
+        unique_id: gazebo_hour_6_temperature
+        value_template: "{{ value_json['hourly']['temperature'][(now().hour + 6) % 24] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Hour 0 Precipitation"
+        unique_id: gazebo_hour_0_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][now().hour] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 1 Precipitation"
+        unique_id: gazebo_hour_1_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 1) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 2 Precipitation"
+        unique_id: gazebo_hour_2_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 2) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 3 Precipitation"
+        unique_id: gazebo_hour_3_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 3) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 4 Precipitation"
+        unique_id: gazebo_hour_4_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 4) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 5 Precipitation"
+        unique_id: gazebo_hour_5_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 5) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 6 Precipitation"
+        unique_id: gazebo_hour_6_precipitation
+        value_template: "{{ value_json['hourly']['precipitation_probability'][(now().hour + 6) % 24] }}"
+        unit_of_measurement: "%"
+
+      - name: "Gazebo Hour 0 Humidity"
+        unique_id: gazebo_hour_0_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][now().hour] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 1 Humidity"
+        unique_id: gazebo_hour_1_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 1) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 2 Humidity"
+        unique_id: gazebo_hour_2_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 2) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 3 Humidity"
+        unique_id: gazebo_hour_3_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 3) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 4 Humidity"
+        unique_id: gazebo_hour_4_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 4) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 5 Humidity"
+        unique_id: gazebo_hour_5_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 5) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      - name: "Gazebo Hour 6 Humidity"
+        unique_id: gazebo_hour_6_humidity
+        value_template: "{{ value_json['hourly']['relative_humidity_2m'][(now().hour + 6) % 24] }}"
+        unit_of_measurement: "%"
+        device_class: humidity
+
+      # Weather codes for weather icons (wxIcon0 to wxIcon6)
+      - name: "Gazebo Hour 0 Weather Code"
+        unique_id: gazebo_hour_0_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][now().hour] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 1 Weather Code"
+        unique_id: gazebo_hour_1_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 1) % 24] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 2 Weather Code"
+        unique_id: gazebo_hour_2_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 2) % 24] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 3 Weather Code"
+        unique_id: gazebo_hour_3_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 3) % 24] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 4 Weather Code"
+        unique_id: gazebo_hour_4_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 4) % 24] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 5 Weather Code"
+        unique_id: gazebo_hour_5_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 5) % 24] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Hour 6 Weather Code"
+        unique_id: gazebo_hour_6_weather_code
+        value_template: "{{ value_json['hourly']['weathercode'][(now().hour + 6) % 24] }}"
+        unit_of_measurement: ""
+
+  # Daily forecast for 7 days (Page 2)
+  - resource: "https://api.open-meteo.com/v1/forecast?latitude=45.2667&longitude=-72.1500&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,windspeed_10m_max,weathercode&forecast_days=16&temperature_unit=celsius&timezone=America/Toronto"
+    scan_interval: 3600
+    sensor:
+      # Day 0 (Today)
+      - name: "Gazebo Day 0 Weather Code"
+        unique_id: gazebo_day_0_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][0] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 0 Temperature Max"
+        unique_id: gazebo_day_0_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][0] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 0 Temperature Min"
+        unique_id: gazebo_day_0_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][0] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 0 Precipitation Probability"
+        unique_id: gazebo_day_0_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][0] }}"
+        unit_of_measurement: "%"
+
+      # Day 1 (Tomorrow)
+      - name: "Gazebo Day 1 Weather Code"
+        unique_id: gazebo_day_1_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][1] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 1 Temperature Max"
+        unique_id: gazebo_day_1_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][1] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 1 Temperature Min"
+        unique_id: gazebo_day_1_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][1] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 1 Precipitation Probability"
+        unique_id: gazebo_day_1_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][1] }}"
+        unit_of_measurement: "%"
+
+      # Day 2
+      - name: "Gazebo Day 2 Weather Code"
+        unique_id: gazebo_day_2_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][2] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 2 Temperature Max"
+        unique_id: gazebo_day_2_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][2] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 2 Temperature Min"
+        unique_id: gazebo_day_2_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][2] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 2 Precipitation Probability"
+        unique_id: gazebo_day_2_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][2] }}"
+        unit_of_measurement: "%"
+
+      # Day 3
+      - name: "Gazebo Day 3 Weather Code"
+        unique_id: gazebo_day_3_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][3] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 3 Temperature Max"
+        unique_id: gazebo_day_3_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][3] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 3 Temperature Min"
+        unique_id: gazebo_day_3_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][3] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 3 Precipitation Probability"
+        unique_id: gazebo_day_3_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][3] }}"
+        unit_of_measurement: "%"
+
+      # Day 4
+      - name: "Gazebo Day 4 Weather Code"
+        unique_id: gazebo_day_4_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][4] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 4 Temperature Max"
+        unique_id: gazebo_day_4_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][4] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 4 Temperature Min"
+        unique_id: gazebo_day_4_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][4] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 4 Precipitation Probability"
+        unique_id: gazebo_day_4_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][4] }}"
+        unit_of_measurement: "%"
+
+      # Day 5
+      - name: "Gazebo Day 5 Weather Code"
+        unique_id: gazebo_day_5_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][5] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 5 Temperature Max"
+        unique_id: gazebo_day_5_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][5] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 5 Temperature Min"
+        unique_id: gazebo_day_5_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][5] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 5 Precipitation Probability"
+        unique_id: gazebo_day_5_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][5] }}"
+        unit_of_measurement: "%"
+
+      # Day 6
+      - name: "Gazebo Day 6 Weather Code"
+        unique_id: gazebo_day_6_weather_code
+        value_template: "{{ value_json['daily']['weathercode'][6] }}"
+        unit_of_measurement: ""
+
+      - name: "Gazebo Day 6 Temperature Max"
+        unique_id: gazebo_day_6_temperature_max
+        value_template: "{{ value_json['daily']['temperature_2m_max'][6] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 6 Temperature Min"
+        unique_id: gazebo_day_6_temperature_min
+        value_template: "{{ value_json['daily']['temperature_2m_min'][6] }}"
+        unit_of_measurement: "°C"
+        device_class: temperature
+
+      - name: "Gazebo Day 6 Precipitation Probability"
+        unique_id: gazebo_day_6_precipitation_probability
+        value_template: "{{ value_json['daily']['precipitation_probability_max'][6] }}"
+        unit_of_measurement: "%"
+
+group:
+  gazebo_sensors:
+    name: "Gazebo Weather Sensors"
+    entities:
+      - sensor.gazebo_current_temperature
+      - sensor.gazebo_current_apparent_temperature
+      - sensor.gazebo_current_humidity
+      - sensor.gazebo_hour_0_weather_code
+      - sensor.gazebo_hour_1_weather_code
+      - sensor.gazebo_hour_2_weather_code
+      - sensor.gazebo_hour_3_weather_code
+      - sensor.gazebo_hour_4_weather_code
+      - sensor.gazebo_hour_5_weather_code
+      - sensor.gazebo_hour_6_weather_code
+      - sensor.gazebo_day_0_weather_code
+      - sensor.gazebo_day_1_weather_code
+      - sensor.gazebo_day_2_weather_code
+      - sensor.gazebo_day_3_weather_code
+      - sensor.gazebo_day_4_weather_code
+      - sensor.gazebo_day_5_weather_code
+      - sensor.gazebo_day_6_weather_code
+
+recorder:
+  exclude:
+    entities:
+      - sensor.gazebo_hour_1_feels_like
+      - sensor.gazebo_hour_2_feels_like
+      - sensor.gazebo_hour_3_feels_like
+      - sensor.gazebo_hour_4_feels_like
+      - sensor.gazebo_hour_5_feels_like
+      - sensor.gazebo_hour_6_feels_like
+      - sensor.gazebo_hour_0_weather_code
+      - sensor.gazebo_hour_1_weather_code
+      - sensor.gazebo_hour_2_weather_code
+      - sensor.gazebo_hour_3_weather_code
+      - sensor.gazebo_hour_4_weather_code
+      - sensor.gazebo_hour_5_weather_code
+      - sensor.gazebo_hour_6_weather_code
+      - sensor.gazebo_day_0_weather_code
+      - sensor.gazebo_day_1_weather_code
+      - sensor.gazebo_day_2_weather_code
+      - sensor.gazebo_day_3_weather_code
+      - sensor.gazebo_day_4_weather_code
+      - sensor.gazebo_day_5_weather_code
+      - sensor.gazebo_day_6_weather_code
+      - sensor.gazebo_day_0_temperature_max
+      - sensor.gazebo_day_1_temperature_max
+      - sensor.gazebo_day_2_temperature_max
+      - sensor.gazebo_day_3_temperature_max
+      - sensor.gazebo_day_4_temperature_max
+      - sensor.gazebo_day_5_temperature_max
+      - sensor.gazebo_day_6_temperature_max
+      - sensor.gazebo_day_0_temperature_min
+      - sensor.gazebo_day_1_temperature_min
+      - sensor.gazebo_day_2_temperature_min
+      - sensor.gazebo_day_3_temperature_min
+      - sensor.gazebo_day_4_temperature_min
+      - sensor.gazebo_day_5_temperature_min
+      - sensor.gazebo_day_6_temperature_min
+      - sensor.gazebo_day_0_precipitation_probability
+      - sensor.gazebo_day_1_precipitation_probability
+      - sensor.gazebo_day_2_precipitation_probability
+      - sensor.gazebo_day_3_precipitation_probability
+      - sensor.gazebo_day_4_precipitation_probability
+      - sensor.gazebo_day_5_precipitation_probability
+      - sensor.gazebo_day_6_precipitation_probability
+
+shell_command:
+  ping_device: ping -c 1 192.168.0.203 > /dev/null 2>&1 && echo success || echo fail
+
+binary_sensor:
+  - platform: template
+    sensors:
+      device_online:
+        friendly_name: "Garage Online"
+        value_template: "{{ states('shell_command.ping_device') == 'success' }}"
+        device_class: connectivity
+
+logger:
+  default: warning
+  logs:
+    homeassistant.components.rest: debug
+
+#lovelace:
+#  mode: yaml
+#  resources:
+#    - url: /local/community/lovelace-card-mod/card-mod.js
+#      type: module
