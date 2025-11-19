@@ -1,0 +1,297 @@
+# GazeboWx Nextion Display - Page 0 Temperature Test
+# Purpose: Test wiring and UART communication by cycling temperature 0→99→0
+# Component: Page 0, component "temp" (temperature display)
+# Duration: Runs indefinitely (each cycle ~200 seconds)
+
+esphome:
+  name: gazebo-wx-test-page0
+  friendly_name: Gazebo WX Page 0 Test
+  on_boot:
+    priority: 600
+    then:
+      - logger.log: "GazeboWx Nextion Page 0 Test Starting"
+      - delay: 2s  # Allow UART to initialize
+      - script.execute: test_page0_temperature
+
+esp32:
+  board: esp32doit-devkit-v1
+  variant: esp32
+  framework:
+    type: arduino
+
+logger:
+  level: DEBUG
+  logs:
+    uart.debug: DEBUG
+    component: DEBUG
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "Gazebo-WX-Test Fallback"
+    password: "gazebo1234"
+
+api:
+  reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+# ============================================================================
+# UART CONFIGURATION - Nextion Display (GPIO16/17)
+# ============================================================================
+
+uart:
+  - id: uart_nextion
+    tx_pin: GPIO17
+    rx_pin: GPIO16
+    baud_rate: 9600
+    debug:
+      direction: BOTH
+      dummy_receiver: false
+
+# ============================================================================
+# NEXTION DISPLAY COMPONENT
+# ============================================================================
+
+display:
+  - platform: nextion
+    uart_id: uart_nextion
+    id: gazebo_nextion
+    lambda: |-
+      // Placeholder - updates via send_command_printf
+      ESP_LOGD("NEXTION", "Display lambda executed");
+
+# ============================================================================
+# GLOBAL VARIABLES - Test State
+# ============================================================================
+
+globals:
+  - id: test_temp_value
+    type: int
+    restore_value: no
+    initial_value: '0'
+
+# ============================================================================
+# TEST SCRIPT - Cycle Temperature 0→99→0
+# ============================================================================
+
+script:
+  - id: test_page0_temperature
+    then:
+      - logger.log: "Starting Page 0 temperature test (0→99→0)"
+      - logger.log: "Testing component: temp (Page 0)"
+      
+      # Ensure we're on Page 0
+      - lambda: |-
+          id(gazebo_nextion).send_command("page 0");
+          ESP_LOGI("NEXTION_TEST", "Switched to Page 0");
+      - delay: 500ms
+      
+      # Clear display and set initial value
+      - lambda: |-
+          id(gazebo_nextion).send_command("cls 0x0000");
+          id(test_temp_value) = 0;
+          ESP_LOGI("NEXTION_TEST", "Display cleared, starting at 0°C");
+      - delay: 500ms
+      
+      # PHASE 1: Increment from 0 to 99 (100 steps)
+      - logger.log: "Phase 1: Incrementing 0→99"
+      - repeat:
+          count: 100  # 0 to 99 = 100 values
+          then:
+            - lambda: |-
+                id(test_temp_value) = id(test_page0_temperature).iteration;
+                ESP_LOGI("NEXTION_TEST", "Iteration %d: Setting temp.val=%d", 
+                         id(test_page0_temperature).iteration, id(test_temp_value));
+            - lambda: |-
+                // Send command to Nextion: temp.val=XX
+                id(gazebo_nextion).send_command_printf("temp.val=%d", id(test_temp_value));
+                ESP_LOGI("NEXTION_TEST", "UART Command: temp.val=%d", id(test_temp_value));
+            - delay: 1s
+      
+      # PHASE 2: Decrement from 98 to 0 (99 steps, skip 99 to avoid duplicate)
+      - logger.log: "Phase 2: Decrementing 98→0"
+      - repeat:
+          count: 99  # 98 down to 0 = 99 values
+          then:
+            - lambda: |-
+                id(test_temp_value) = 98 - id(test_page0_temperature).iteration;
+                ESP_LOGI("NEXTION_TEST", "Iteration %d: Setting temp.val=%d (descending)", 
+                         id(test_page0_temperature).iteration, id(test_temp_value));
+            - lambda: |-
+                // Send command to Nextion: temp.val=XX
+                id(gazebo_nextion).send_command_printf("temp.val=%d", id(test_temp_value));
+                ESP_LOGI("NEXTION_TEST", "UART Command: temp.val=%d", id(test_temp_value));
+            - delay: 1s
+      
+      # Loop back to start
+      - logger.log: "Cycle complete, restarting..."
+      - delay: 2s
+      - script.execute: test_page0_temperature
+
+# ============================================================================
+# MANUAL RESTART BUTTON (Optional)
+# ============================================================================
+
+button:
+  - platform: template
+    name: "Restart Page 0 Test"
+    icon: "mdi:restart"
+    on_press:
+      then:
+        - logger.log: "Manual restart requested"
+        - script.execute: test_page0_temperature
+
+# ============================================================================
+# STATUS LED (Optional - GPIO2)
+# ============================================================================
+
+output:
+  - platform: gpio
+    id: status_led
+    pin: GPIO2
+    inverted: true
+
+light:
+  - platform: binary
+    name: "Status LED"
+    output: status_led
+    id: status_light
+    on_turn_on:
+      then:
+        - delay: 100ms
+        - light.turn_off: status_light
+
+---
+# TEST PROCEDURES
+## Expected Behavior
+1. Boot Sequence:
+   - ESPHome starts and connects to WiFi
+   - UART initializes on GPIO16/17 at 9600 baud
+   - Script switches to Page 0
+   - Display clears
+   - Temperature starts at 0°C
+
+2. Temperature Cycle (First iteration):
+   - Phase 1: 0°C → 1°C → 2°C → ... → 99°C (100 steps, 100 seconds)
+   - Phase 2: 98°C → 97°C → ... → 1°C → 0°C (99 steps, 99 seconds)
+   - Total cycle: ~200 seconds
+   - Restart at 0°C and repeat indefinitely
+
+3. UART Communication:
+   - Each update sends: `temp.val=XX[0xFF][0xFF][0xFF]`
+   - Example: `temp.val=22` followed by 3 termination bytes
+   - Latency: Should be immediate (<100ms)
+
+4. Display Behavior:
+   - Nextion Page 0 shows temperature counting up 0→99
+   - Then counts down 98→0
+   - Then repeats
+   - Update frequency: Exactly 1 second per step
+
+## Log Output Examples
+```
+[00:00:00][I][NEXTION_TEST]: GazeboWx Nextion Page 0 Test Starting
+[00:00:02][I][NEXTION_TEST]: Switched to Page 0
+[00:00:02][I][NEXTION_TEST]: Display cleared, starting at 0°C
+[00:00:02][I][NEXTION_TEST]: Starting Page 0 temperature test (0→99→0)
+[00:00:02][I][NEXTION_TEST]: Testing component: temp (Page 0)
+[00:00:02][I][NEXTION_TEST]: Phase 1: Incrementing 0→99
+[00:00:03][I][NEXTION_TEST]: Iteration 0: Setting temp.val=0
+[00:00:03][I][NEXTION_TEST]: UART Command: temp.val=0
+[00:00:04][I][NEXTION_TEST]: Iteration 1: Setting temp.val=1
+[00:00:04][I][NEXTION_TEST]: UART Command: temp.val=1
+...
+[00:01:42][I][NEXTION_TEST]: Iteration 99: Setting temp.val=99
+[00:01:42][I][NEXTION_TEST]: UART Command: temp.val=99
+[00:01:42][I][NEXTION_TEST]: Phase 2: Decrementing 98→0
+[00:01:43][I][NEXTION_TEST]: Iteration 0: Setting temp.val=98 (descending)
+[00:01:43][I][NEXTION_TEST]: UART Command: temp.val=98
+...
+[00:03:22][I][NEXTION_TEST]: Iteration 98: Setting temp.val=0 (descending)
+[00:03:22][I][NEXTION_TEST]: UART Command: temp.val=0
+[00:03:22][I][NEXTION_TEST]: Cycle complete, restarting...
+```
+
+## What to Verify
+### ✅ Test Success Criteria
+1. UART Connection:
+   - [ ] Log shows "Switched to Page 0"
+   - [ ] No UART errors in logs
+   - [ ] Nextion display shows Page 0 (Extérieur)
+   - [ ] Display shows no errors/corruption
+
+2. Temperature Display:
+   - [ ] Display shows correct temperature values (0→99→0)
+   - [ ] Display updates exactly every 1 second
+   - [ ] No missing values or jumps
+   - [ ] Values match log output
+
+3. Update Timing:
+   - [ ] Each step takes exactly 1 second (±100ms)
+   - [ ] Full cycle (0→99→0) = ~200 seconds
+   - [ ] Repeats indefinitely without drift
+
+4. Data Accuracy:
+   - [ ] Values increment by exactly 1 (0→99)
+   - [ ] Values decrement by exactly 1 (98→0)
+   - [ ] No glitches, skips, or duplicates
+
+### ⚠️ Common Issues & Troubleshooting
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "UART Connection Failed" | Wrong GPIO pins or baud rate | Check GPIO16 (RX), GPIO17 (TX), verify 9600 baud |
+| Display shows "888" | Nextion not receiving updates | Verify UART termination bytes (0xFF 0xFF 0xFF) |
+| Display freezes | UART buffer overflow | Reduce command frequency or increase UART buffer |
+| Values don't match logs | UART corruption | Check cable quality, shielding, and signal integrity |
+| Timing is off | CPU overload or WiFi interference | Reduce other tasks or move away from WiFi source |
+| Display garbled | Baud rate mismatch | Verify Nextion is set to 9600 baud |
+| Wrong page displayed | Page not switched | Verify Page 0 is loaded on Nextion |
+
+## How to Run This Test
+### Compilation
+```bash
+esphome compile NEXTION_TEST_PAGE0.yaml
+```
+
+### Flashing to Device
+```bash
+esphome upload NEXTION_TEST_PAGE0.yaml
+```
+
+### Monitoring
+```bash
+esphome logs NEXTION_TEST_PAGE0.yaml
+```
+
+### Manual Restart (if needed)
+- Press "Restart Page 0 Test" button in Home Assistant
+- Or restart device: `esphome run NEXTION_TEST_PAGE0.yaml`
+
+## Safety Notes
+- This test runs indefinitely - it will cycle temperature values continuously
+- No heating/cooling relay is activated (test only affects display)
+- Safe to run 24/7 for extended testing
+- No data is persisted (test values cleared on reboot)
+
+## Test Duration
+- Single cycle: ~200 seconds (0→99 ascending + 98→0 descending)
+- Minimum recommended test duration: 10-15 minutes (3-4 complete cycles)
+- Suggested test duration: 1+ hours (18+ cycles for stability verification)
+
+---
+## Document Information
+**File**: NEXTION_TEST_PAGE0.yaml
+**Version**: 1.0.0
+**Purpose**: User Story 4 Testing - Page 0 Temperature Display Wiring Test
+**Date**: 2025-01-27
+**Status**: Ready to Use
+
+**Related Files**:
+- NEXTION_DISPLAY.md (Complete display integration guide)
+- NEXTION_TEST.yaml (Original 0→50 test)
+- specs/001-gazebo-stove-heating-control/tasks.md (US4 testing tasks)
+
