@@ -39,3 +39,5 @@ The spec is now compatible with speckit commands:
 
 The original specification remains in `Docs/SPECIFICATION.md` for reference. This speckit version is the canonical source for workflow-driven development.
 
+
+

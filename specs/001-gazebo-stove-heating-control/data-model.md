@@ -345,3 +345,5 @@ relay (switch)
 | `gazebo_temp` | -55 to +125°C (sensor spec) | Mark as invalid if out of range |
 | `relay` | Must respect priority hierarchy | Force OFF if higher priority active |
 
+
+

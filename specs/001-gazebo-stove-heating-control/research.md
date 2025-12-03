@@ -113,3 +113,5 @@ All research questions resolved. No blocking technical unknowns remain. Implemen
 - ESPHome climate platform (symmetric deadband accepted)
 - Priority script pattern for control logic
 
+
+

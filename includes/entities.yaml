@@ -23,6 +23,9 @@ binary_sensor:
 
 number:
   # Desired Temperature Setpoint
+  # Note: The climate component is now the primary thermostat
+  # This number provides an alternative UI for setting the target temperature
+  # Users can set temperature via either the climate card or this number slider
   - platform: template
     name: "Desired Temperature"
     id: desired_temp
@@ -39,50 +42,15 @@ number:
         - logger.log:
             format: "Desired temperature set to %.1f°C"
             args: ["x"]
-        # Update climate platform's target temperature
-        - lambda: |-
-            auto* climate = id(propane_stove_thermostat);
-            if (climate != nullptr) {
-              climate->target_temperature = x;
-              climate->publish_state();
-              ESP_LOGD("TEMP_SYNC", "Climate platform target updated to %.1f°C", x);
-            }
         # Update Nextion display if available
         - lambda: |-
             if (id(gazebo_nextion).is_failed() == false) {
               id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
             }
-        # Immediately apply relay state based on new setpoint comparison with current temp
-        # This ensures relay turns off if desired < current, without waiting for idle_action
-        - lambda: |-
-            // Check if any priority overrides are active (prevent overriding their decisions)
-            bool away_mode = (id(presence_mode).state == "away");
-            bool manual_stop = id(manual_stop_active);
-            bool manual_run = id(manual_run_active);
-
-            // Only enforce relay state if no higher priority overrides are active
-            if (!manual_stop && !manual_run && !away_mode) {
-              float desired = x;
-              float current = id(gazebo_temp).state;
-
-              ESP_LOGI("DESIRED_TEMP", "Setpoint changed to %.1f°C, current=%.1f°C", desired, current);
-
-              // If desired <= current, turn relay OFF immediately
-              if (desired <= current) {
-                if (id(relay).state) {
-                  id(relay).turn_off();
-                  ESP_LOGI("DESIRED_TEMP", "Desired <= Current: Relay OFF");
-                }
-              } else {
-                // If desired > current, turn relay ON immediately
-                if (!id(relay).state) {
-                  id(relay).turn_on();
-                  ESP_LOGI("DESIRED_TEMP", "Desired > Current: Relay ON");
-                }
-              }
-            } else {
-              ESP_LOGI("DESIRED_TEMP", "Priority override active - relay control delegated to priority system");
-            }
+        # Small delay to allow state to sync
+        - delay: 50ms
+        # Re-evaluate heating with new setpoint
+        - script.execute: manage_heating
 
   # Temperature Offset (Calibration)
   - platform: template
@@ -95,16 +63,11 @@ number:
     icon: "mdi:plus-minus"
     restore_value: yes
     initial_value: 0
-    optimistic: true
     set_action:
       then:
         - logger.log:
             format: "Temperature offset set to %.1f°C"
             args: ["x"]
-        # Update the internal value and publish state
-        - lambda: |-
-            id(temp_offset).publish_state(x);
-            ESP_LOGI("TEMP_OFFSET", "Offset changed to %.1f°C", x);
 
   # Heating Hysteresis (deadband for stove control)
   - platform: template
@@ -122,130 +85,6 @@ number:
         - logger.log:
             format: "Heating hysteresis set to %.1f°C"
             args: ["x"]
-        # Note: Hysteresis entity is for reference only
-        # ESPHome climate platform uses its own internal hysteresis calculation
-
-  # ========================================================================
-  # Schedule Time Configuration Entities
-  # ========================================================================
-
-  # Home Mode Time (Hour)
-  - platform: template
-    name: "Home Mode Time (Hour)"
-    id: home_mode_hour
-    min_value: 0
-    max_value: 23
-    step: 1
-    unit_of_measurement: "h"
-    icon: "mdi:home-clock"
-    restore_value: yes
-    initial_value: 6
-    optimistic: true
-    set_action:
-      then:
-        - logger.log:
-            format: "Home mode hour set to: %.0f"
-            args: ["x"]
-
-  # Home Mode Time (Minute)
-  - platform: template
-    name: "Home Mode Time (Minute)"
-    id: home_mode_minute
-    min_value: 0
-    max_value: 59
-    step: 1
-    unit_of_measurement: "min"
-    icon: "mdi:home-clock"
-    restore_value: yes
-    initial_value: 0
-    optimistic: true
-    set_action:
-      then:
-        - logger.log:
-            format: "Home mode minute set to: %.0f"
-            args: ["x"]
-
-  # Away Mode Time (Hour)
-  - platform: template
-    name: "Away Mode Time (Hour)"
-    id: away_mode_hour
-    min_value: 0
-    max_value: 23
-    step: 1
-    unit_of_measurement: "h"
-    icon: "mdi:clock-out"
-    restore_value: yes
-    initial_value: 22
-    optimistic: true
-    set_action:
-      then:
-        - logger.log:
-            format: "Away mode hour set to: %.0f"
-            args: ["x"]
-
-  # Away Mode Time (Minute)
-  - platform: template
-    name: "Away Mode Time (Minute)"
-    id: away_mode_minute
-    min_value: 0
-    max_value: 59
-    step: 1
-    unit_of_measurement: "min"
-    icon: "mdi:clock-out"
-    restore_value: yes
-    initial_value: 0
-    optimistic: true
-    set_action:
-      then:
-        - logger.log:
-            format: "Away mode minute set to: %.0f"
-            args: ["x"]
-
-# ============================================================================
-# CLIMATE ENTITY - Thermostat Control (Single Source of Truth)
-# ============================================================================
-# ESPHome climate platform is the single decision maker:
-# - Compares desired_temp vs current_temp
-# - Implements hysteresis for stable control
-# - Calls heat_action when heating is needed
-# - Calls idle_action when heating should stop
-#
-# Priority system (in automation.yaml) wraps around climate:
-# - Override heat_action when Manual Stop, Manual Run, or Away Mode is active
-# - Climate platform is NOT bypassed, just conditionally overridden
-# - This keeps climate as single source of truth while adding application-specific logic
-
-climate:
-  - platform: thermostat
-    name: "Propane Stove Thermostat"
-    id: propane_stove_thermostat
-    sensor: gazebo_temp
-    # Reduced times to allow faster response when setpoint changes
-    min_heating_off_time: 5s
-    min_heating_run_time: 30s
-    min_idle_time: 5s
-
-    # Heat action: Turn relay ON when thermostat decides to heat
-    heat_action:
-      - logger.log: "THERMOSTAT: heat_action triggered"
-      # Sync desired_temp number entity with climate target temperature
-      - lambda: |-
-          id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
-          ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
-                   id(propane_stove_thermostat).target_temperature);
-      # Apply priority overrides - if no overrides, relay will stay ON
-      - script.execute: apply_priority_overrides
-
-    # Idle action: Turn relay OFF when thermostat decides to stop heating
-    idle_action:
-      - logger.log: "THERMOSTAT: idle_action triggered"
-      # Sync desired_temp number entity with climate target temperature
-      - lambda: |-
-          id(desired_temp).publish_state(id(propane_stove_thermostat).target_temperature);
-          ESP_LOGD("TEMP_SYNC", "Synced desired_temp to climate target: %.1f°C",
-                   id(propane_stove_thermostat).target_temperature);
-      # Apply priority overrides - if no overrides, relay will turn OFF
-      - script.execute: apply_priority_overrides
 
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
@@ -259,26 +98,21 @@ select:
     options:
       - "home"
       - "away"
-    lambda: |-
-      return id(presence_mode_state);
+    initial_option: "home"
+    restore_value: yes
     set_action:
       then:
         - logger.log:
-            format: "Presence mode set to: %s (manual override)"
+            format: "Presence mode set to: %s"
             args: ["x.c_str()"]
-        - lambda: |-
-            id(presence_mode_state) = x;
-            id(presence_mode_manual) = true;
-            id(presence_mode).publish_state(x);
-            ESP_LOGI("PRESENCE", "Manual mode set - blocking schedule overrides");
-        # Apply priority overrides when presence mode changes
-        - script.execute: apply_priority_overrides
+        # Re-evaluate heating when presence changes
+        - script.execute: manage_heating
 
 # ============================================================================
-# SWITCH ENTITIES - Manual Overrides & Schedule Control
+# SWITCH ENTITIES - Manual Overrides
 # ============================================================================
-# Note: Manual Run, Manual Stop, and Heating Schedule switches are defined
-# in hardware.yaml to prevent YAML section conflicts when merging includes
+# Note: Manual Run and Manual Stop switches are now defined in hardware.yaml
+# This prevents YAML section conflicts when merging multiple includes
 
 # ============================================================================
 # TEXT SENSORS - Status Messages & Information
@@ -316,6 +150,12 @@ text_sensor:
         return std::string("OK - Display Offline");
       }
 
+  # Heating Status
+  - platform: template
+    name: "Heating Status"
+    id: heating_status
+    icon: "mdi:power"
+
 # ============================================================================
 # GLOBAL VARIABLES - Internal State Tracking
 # ============================================================================
@@ -327,30 +167,20 @@ globals:
     restore_value: no
     initial_value: '0'
 
-  # Manual run state tracker (used by priority management system)
+  # Manual run timeout timestamp
+  - id: manual_run_timeout
+    type: long
+    restore_value: no
+    initial_value: '0'
+
+  # Manual run state tracker
   - id: manual_run_active
     type: bool
     restore_value: no
     initial_value: 'false'
 
-  # Manual stop state tracker (used by priority management system)
+  # Manual stop state tracker
   - id: manual_stop_active
-    type: bool
-    restore_value: no
-    initial_value: 'false'
-
-  # Presence mode state tracker (Home/Away mode storage)
-  # This global variable stores the presence mode state for the presence_mode select entity
-  # It is used by the template select entity's lambda to read/write the current mode
-  - id: presence_mode_state
-    type: std::string
-    restore_value: yes
-    initial_value: '"home"'
-
-  # Flag to track if presence mode was manually set (not by schedule)
-  # When true, the schedule automation will not override the mode
-  # Reset to false when schedule changes the mode
-  - id: presence_mode_manual
     type: bool
     restore_value: no
     initial_value: 'false'

@@ -15,7 +15,7 @@ sensor:
     filters:
       # Moving average to smooth readings (recalculates when offset changes)
       - sliding_window_moving_average:
-          window_size: 10
+          window_size: 5
           send_every: 1
       # Apply temperature offset/calibration (recalculates dynamically)
       - lambda: |-
@@ -63,6 +63,18 @@ sensor:
                   }
               # Check if relay should be on/off based on current climate state
               - script.execute: apply_priority_overrides
+        # Update Nextion display - Try ALL common component names with page prefix
+        - lambda: |-
+            if (id(gazebo_nextion).is_failed() == false) {
+              ESP_LOGD("NEXTION_DEBUG", "Sending temp %.1f to display (Page 0)", x);
+              // Try Number components with page prefix
+              id(gazebo_nextion).send_command_printf("page0.temp.val=%d", (int)x);
+              id(gazebo_nextion).send_command_printf("page0.n0.val=%d", (int)x);
+              id(gazebo_nextion).send_command_printf("page0.n1.val=%d", (int)x);
+              // Try Text components with page prefix
+              id(gazebo_nextion).send_command_printf("page0.t0.txt=\"%.0f\"", x);
+              id(gazebo_nextion).send_command_printf("page0.t1.txt=\"%.0f\"", x);
+            }
 
   # WiFi Signal Strength
   - platform: wifi_signal
