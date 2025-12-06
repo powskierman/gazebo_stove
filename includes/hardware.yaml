@@ -113,10 +113,14 @@ switch:
             }
             id(relay).turn_off();
             ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
+            id(manual_stop).publish_state(true);
         - script.execute: update_relay_state
     turn_off_action:
       then:
         - logger.log: "Manual Stop disabled - Restoring normal control"
         - lambda: |-
             id(manual_stop_active) = false;
+            ESP_LOGI("MANUAL_STOP", "Disabled - Heating control restored");
+            id(manual_stop).publish_state(false);
         - script.execute: manage_heating
+```
