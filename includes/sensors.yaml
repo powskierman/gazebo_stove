@@ -13,17 +13,19 @@ sensor:
     resolution: 12
     update_interval: 10s
     filters:
-      # 10-second moving average to smooth readings
-      - throttle_average: 10s
-      # Apply temperature offset/calibration
+      # Moving average to smooth readings (recalculates when offset changes)
+      - sliding_window_moving_average:
+          window_size: 5
+          send_every: 1
+      # Apply temperature offset/calibration (recalculates dynamically)
       - lambda: |-
           return x + id(temp_offset).state;
       # Clamp to valid range (-40°C to 85°C)
       - clamp:
           min_value: -40
           max_value: 85
-      # Rate limiting: max ±1°C change per reading
-      - delta: 1.0
+      # Rate limiting removed for debugging
+      #- delta: 1.0
 
     # Bad read detection and heating control
     on_value:
@@ -45,13 +47,34 @@ sensor:
                 id(sensor_malfunction).publish_state(false);
               }
             }
-        # Call heating control script on valid temperature reading
+        # Force climate platform to republish state with updated temperature
+        # This ensures the climate entity's "Currently" temperature updates in Home Assistant
+        # AND it triggers the climate platform to re-evaluate if it should heat/idle
         - if:
             condition:
-              - lambda: |-
-                  return !isnan(x) && !id(sensor_malfunction).state;
+              lambda: |-
+                return !isnan(x);
             then:
+              - lambda: !lambda |-
+                  auto* climate = id(gazebo_thermostat);
+                  if (climate != nullptr) {
+                    climate->publish_state();
+                    ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
+                  }
+              # Check if relay should be on/off based on current climate state
               - script.execute: manage_heating
+        # Update Nextion display - Try ALL common component names with page prefix
+        # Update Nextion display
+        # Update Nextion display
+        # Update Nextion display
+        - lambda: |-
+            if (id(gazebo_nextion).is_failed() == false) {
+              ESP_LOGD("NEXTION_DEBUG", "Sending temp %.1f to display", x);
+              // Update 'temp' component on Page 'zero'
+              id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
+              // Also try local update in case page is active
+              id(gazebo_nextion).send_command_printf("temp.val=%d", (int)x);
+            }
 
   # WiFi Signal Strength
   - platform: wifi_signal
@@ -60,3 +83,19 @@ sensor:
     update_interval: 60s
     unit_of_measurement: "dBm"
     entity_category: "diagnostic"
+
+  # Import Humidity from Home Assistant
+  - platform: homeassistant
+    id: gazebo_humidity
+    entity_id: sensor.gazebo_current_humidity
+    internal: true
+    on_value:
+      then:
+        - lambda: |-
+            if (id(gazebo_nextion).is_failed() == false) {
+              ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
+              // Update 'precip' component on Page 'zero'
+              id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
+              // Also try local update
+              id(gazebo_nextion).send_command_printf("precip.val=%d", (int)x);
+            }

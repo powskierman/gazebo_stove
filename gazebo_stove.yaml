@@ -1,61 +1,14 @@
-# ============================================================================
-# GAZEBO STOVE ESPHOME CONFIGURATION
-# ============================================================================
-# Modular configuration with includes for better maintainability
-#
-# Hardware: esp32doit-devkit-v1 (development) / Custom ESP32 WROOM (production)
-# Features: Thermostat, relay control, Nextion display, weather integration
-# Date: 2025-11-10
-#
-# Module Structure:
-#   - core.yaml: Board, WiFi, API, OTA, NTP
-#   - hardware.yaml: GPIO, relays, LEDs, one-wire
-#   - sensors.yaml: Temperature, WiFi signal
-#   - climate.yaml: Thermostat component (works with manage_heating script)
-#   - entities.yaml: Numbers, selects, binary sensors, text sensors (synced with climate)
-#   - automation.yaml: Scripts and heating logic
-#   - display.yaml: Nextion UART and display
-#   - buttons.yaml: Restart and shutdown controls
+# Gazebo Stove Entry Point
+# All configuration is handled in the included packages
 
-# ============================================================================
-# CORE CONFIGURATION
-# ============================================================================
 
-<<: !include includes/core.yaml
-
-# ============================================================================
-# HARDWARE CONFIGURATION
-# ============================================================================
-
-<<: !include includes/hardware.yaml
-
-# ============================================================================
-# SENSORS & MEASUREMENTS
-# ============================================================================
-
-<<: !include includes/sensors.yaml
-
-# ============================================================================
-# USER ENTITIES & SWITCHES
-# ============================================================================
-# Number sliders, select dropdowns, binary sensors, and text sensors
-
-<<: !include includes/entities.yaml
-
-# ============================================================================
-# AUTOMATION & LOGIC
-# ============================================================================
-
-<<: !include includes/automation.yaml
-
-# ============================================================================
-# DISPLAY INTEGRATION
-# ============================================================================
-
-<<: !include includes/display.yaml
-
-# ============================================================================
-# BUTTONS & CONTROLS
-# ============================================================================
-
-<<: !include includes/buttons.yaml
+# Include modular configuration files
+packages:
+  core: !include includes/core.yaml
+  hardware: !include includes/hardware.yaml
+  sensors: !include includes/sensors.yaml
+  entities: !include includes/entities.yaml
+  automation: !include includes/automation.yaml
+  display: !include includes/display.yaml
+  climate: !include includes/climate.yaml
+  buttons: !include includes/buttons.yaml

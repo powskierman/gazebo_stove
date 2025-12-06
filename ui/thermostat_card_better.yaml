@@ -1,0 +1,45 @@
+# ============================================================================
+# BETTER THERMOSTAT UI CARD
+# ============================================================================
+# Install: Add custom repository in HACS
+# https://github.com/KartikDj/better-thermostat-ui-card
+#
+# This card shows a modern thermostat display with:
+# - Large circular temperature display
+# - Easy +/- buttons for target temperature
+# - Mode switcher (home/away)
+# - Current vs target temperature comparison
+# - Status of stove (on/off)
+# ============================================================================
+
+type: custom:better-thermostat-ui-card
+entity: number.gazebo_stove_desired_temperature
+current_temperature: sensor.gazebo_stove_gazebo_temperature
+target_temperature: number.gazebo_stove_desired_temperature
+min: 5
+max: 35
+step: 0.5
+decimals: 1
+unit: °C
+modes:
+  - mode: home
+    name: Home
+    icon: mdi:home
+  - mode: away
+    name: Away
+    icon: mdi:power-off
+current_mode_template: "{{ 'home' if is_state('select.gazebo_stove_presence_mode', 'home') else 'away' }}"
+set_mode_service: select.select_option
+set_mode_service_data:
+  entity_id: select.gazebo_stove_presence_mode
+  option: "{{ mode }}"
+set_temperature_service: number.set_value
+set_temperature_service_data:
+  entity_id: number.gazebo_stove_desired_temperature
+  value: "{{ value }}"
+show_indicator: true
+show_units: true
+header: true
+name: Gazebo Stove Thermostat
+info_left_template: "{{ states('sensor.gazebo_stove_gazebo_temperature') }} °C"
+info_right_template: "{% if is_state('switch.gazebo_stove_propane_stove_relay', 'on') %}🔥 Heating{% else %}⏸ Idle{% endif %}"

@@ -1,0 +1,181 @@
+alexa:
+  smart_home:
+
+history:
+
+http:
+#  ssl_certificate: /ssl/fullchain.pem
+#  ssl_key: /ssl/privkey.pem
+#  api_password: !secret hass_pass
+#  ssl_certificate: /config/ssl/certs/powskierman.duckdns.org/fullchain.pem
+#  ssl_key: /config/ssl/certs/powskierman.duckdns.org/privkey.pem
+  base_url: powskierman.duckdns.org:8123
+  ip_ban_enabled: true
+  login_attempts_threshold: 10
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.30.33.0/24
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+light:
+  - platform: group
+    name: Bedroom Lights
+    entities:
+      - light.lorraine_light
+      - light.michel_light
+
+sensor:
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'date_time_utc'
+      - 'date_time_iso'
+      - 'time_date'
+      - 'time_utc'
+
+# ============================================================================
+# INPUT HELPERS - Bedroom Wake-up Lights Configuration
+# ============================================================================
+
+input_datetime:
+  wakeup_time:
+    name: "Start lights at"
+    has_time: true
+    has_date: false
+    initial: "08:00"
+
+input_boolean:
+  wakeup_enabled:
+    name: "Wake-up lights"
+    initial: on
+    icon: mdi:theme-light-dark
+  sunset_enabled:
+    name: "Sunset lights"
+    initial: on
+    icon: mdi:theme-light-dark
+  wakeup_weekend:
+    name: "Enable Wake-up on weekends"
+    initial: off # I disable the system on default on weekends
+    icon: mdi:calendar-blank
+
+# ============================================================================
+# GAZEBO STOVE HEATING CONTROL - ESPHome Integration
+# ============================================================================
+# Note: Schedule is now handled by ESPHome natively (no HA helpers needed)
+# The thermostat template entity below provides UI integration only
+# For details, see: HASS_IMPLEMENTATION_GUIDE.md
+
+# Thermostat UI Card (displays current/desired temp, allows setpoint adjustment)
+template:
+  - climate:
+      - name: "Propane Stove Thermostat"
+        unique_id: gazebo_propane_stove_thermostat
+
+        # Current temperature from ESPHome sensor
+        current_temperature: "{{ states('sensor.gazebo_temperature') | float(20) }}"
+
+        # Target temperature from ESPHome number entity
+        target_temperature: "{{ states('number.desired_temperature') | float(22) }}"
+
+        # UI settings
+        target_temperature_step: 0.5
+        min_temp: 5
+        max_temp: 35
+        temperature_unit: C
+
+        # Heating-only system (propane stove cannot cool)
+        hvac_modes:
+          - "heat"
+          - "off"
+
+        # Preset modes (mapped from ESPHome presence_mode)
+        preset_modes:
+          - "home"
+          - "away"
+        preset_mode: "{{ 'home' if states('select.presence_mode') == 'home' else 'away' }}"
+
+        # When user adjusts setpoint slider
+        set_temperature:
+          service: number.set_value
+          target:
+            entity_id: number.desired_temperature
+          data:
+            value: "{{ temperature }}"
+
+        # When user changes preset mode (home/away)
+        set_preset_mode:
+          service: select.select_option
+          target:
+            entity_id: select.presence_mode
+          data:
+            option: "{{ preset_mode }}"
+
+        # Visual indicator of heating status
+        hvac_action: >-
+          {% if states('switch.propane_stove_relay') == 'on' %}
+            heating
+          {% elif states('select.presence_mode') == 'away' %}
+            off
+          {% elif states('switch.manual_stop') == 'on' %}
+            off
+          {% else %}
+            idle
+          {% endif %}
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+entity_controller: !include entity_controller.yaml
+mqtt: !include mqtt.yaml
+
+logger:
+  default: warning  # this sets the default log level for all components
+  logs:
+    homeassistant.components.websocket_api: debug
+
+# ============================================================================
+# IMPORTANT NOTES
+# ============================================================================
+# 1. Gazebo Stove Schedule:
+#    - NO input_boolean or input_datetime helpers needed for schedule
+#    - Schedule is now handled by ESPHome natively
+#    - User configures times via ESPHome number entities:
+#      * number.home_mode_time_hour (0-23)
+#      * number.home_mode_time_minute (0-59)
+#      * number.away_mode_time_hour (0-23)
+#      * number.away_mode_time_minute (0-59)
+#      * switch.heating_schedule (ON/OFF to enable/disable)
+#    - Device works independently even if HA is offline
+#
+# 2. Temperature Control:
+#    - The template climate entity above provides a nice thermostat card UI
+#    - Actual heating logic runs in ESPHome
+#    - Displays current temp and allows setpoint adjustment
+#    - Shows heating status (heating/idle/off)
+#
+# 3. Entity ID Mapping:
+#    If your ESPHome device has a different name, update these entity IDs:
+#      - sensor.gazebo_temperature
+#      - number.desired_temperature
+#      - select.presence_mode
+#      - switch.propane_stove_relay
+#      - switch.manual_stop
+#
+# 4. Manual Controls:
+#    Available in ESPHome UI (accessible via HA):
+#      - switch.manual_run (Emergency Heat, 15-min timeout)
+#      - switch.manual_stop (Force Off, highest priority)
+#      - number.heating_hysteresis (temperature deadband)
+#      - number.temperature_offset (sensor calibration)
+#
+# For more information, see: HASS_IMPLEMENTATION_GUIDE.md
+# ============================================================================

@@ -10,13 +10,21 @@ script:
       - logger.log: "Initializing Nextion display..."
       - lambda: |-
           if (id(gazebo_nextion).is_failed() == false) {
+            id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
             id(gazebo_nextion).send_command("cls 0x0000");
-            ESP_LOGI("NEXTION_INIT", "Display cleared");
+            id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
+            ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
 
             // Update Page 0 with initial values
+            // Temperature
+            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
             id(gazebo_nextion).send_command_printf("temp.val=%d", (int)id(gazebo_temp).state);
-            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)id(gazebo_temp).state);
-            id(gazebo_nextion).send_command_printf("n1.val=%d", (int)id(desired_temp).state);
+            
+            // Humidity/Precip
+            if (!isnan(id(gazebo_humidity).state)) {
+              id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
+              id(gazebo_nextion).send_command_printf("precip.val=%d", (int)id(gazebo_humidity).state);
+            }
 
             ESP_LOGI("NEXTION_INIT", "Display initialization complete");
           } else {
@@ -47,9 +55,8 @@ script:
           // ========================================================================
           // Priority 1: Manual Stop (Force Off) - HIGHEST PRIORITY
           // ========================================================================
-          // User has explicitly disabled all heating - MUST override all other modes
-          // This is a safety feature for maintenance and emergency shutoff
           if (manual_stop) {
+            id(heating_status).publish_state("Forced Off");
             if (id(relay).state) {
               id(relay).turn_off();
               ESP_LOGI("PRIORITY", "Force Off: Relay OFF (Priority 1 - HIGHEST)");
@@ -60,27 +67,21 @@ script:
           // ========================================================================
           // Priority 2: Manual Run (Emergency Heat) - 15-minute timer
           // ========================================================================
-          // Emergency heating override - user manually activated emergency heat
-          // Overrides schedule but respects Force Off (checked above)
           if (manual_run) {
-            // Safety check: if timeout is 0, it means it was just activated or reset
+            id(heating_status).publish_state("Emergency Heat");
             if (id(manual_run_timeout) == 0) {
-              // This shouldn't happen if switch was properly activated, but handle it
               ESP_LOGW("MANUAL_RUN", "Timeout is 0 but manual_run_active is true - resetting");
               id(manual_run_timeout) = millis();
             }
 
             long elapsed = millis() - id(manual_run_timeout);
-            long timeout_ms = 15 * 60 * 1000; // 15 minutes in milliseconds
+            long timeout_ms = 15 * 60 * 1000;
 
             if (elapsed >= timeout_ms) {
-              // Auto-disable after 15 minutes
               ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling");
               id(manual_run_active) = false;
               id(manual_run_timeout) = 0;
-              // Continue to priority 3 (Schedule check) - don't return, let it evaluate
             } else {
-              // Keep relay ON while manual run is active
               if (!id(relay).state) {
                 id(relay).turn_on();
                 ESP_LOGI("PRIORITY", "Emergency Heat: Relay ON (Priority 2, %ld ms remaining)", timeout_ms - elapsed);
@@ -92,10 +93,8 @@ script:
           // ========================================================================
           // Priority 3: Presence Mode (Schedule) - Home/Away based control
           // ========================================================================
-          // Schedule-based mode controls operational vs standby states
-          // "away" mode: stove is on standby (heating disabled)
-          // "home" mode: allows thermostat to run
           if (schedule_standby) {
+            id(heating_status).publish_state("Schedule Standby");
             if (id(relay).state) {
               id(relay).turn_off();
               ESP_LOGI("PRIORITY", "Schedule: Standby mode (Priority 3) - Relay OFF");
@@ -106,32 +105,35 @@ script:
           // ========================================================================
           // Priority 4: Thermostat Algorithm - LOWEST PRIORITY
           // ========================================================================
-          // Normal heating control based on temperature setpoint and hysteresis
-          // Only runs when higher priority modes are inactive
-          float lower_threshold = desired - hysteresis/2.0;
-          float upper_threshold = desired + hysteresis/2.0;
+          float lower_threshold = desired - hysteresis;
+          float upper_threshold = desired + hysteresis;
 
           ESP_LOGD("HEATING", "Current: %.1f°C, Desired: %.1f°C, Hysteresis: %.1f°C",
                    current_temp, desired, hysteresis);
-          ESP_LOGD("HEATING", "Thresholds: Lower=%.1f, Upper=%.1f, Relay=%s",
+          ESP_LOGD("HEATING", "Asymmetric Thresholds: Lower=%.1f, Upper=%.1f, Relay=%s",
                    lower_threshold, upper_threshold,
                    id(relay).state ? "ON" : "OFF");
 
-          if (current_temp < lower_threshold) {
-            // Temperature below setpoint - start heating
+          if (current_temp <= lower_threshold) {
+            id(heating_status).publish_state("Heating");
             if (!id(relay).state) {
               id(relay).turn_on();
-              ESP_LOGI("HEATING", "Start heating: %.1f°C < %.1f°C (Priority 4)", current_temp, lower_threshold);
+              ESP_LOGI("HEATING", "Start heating: %.1f°C <= %.1f°C (Priority 4)", current_temp, lower_threshold);
             }
-          } else if (current_temp > upper_threshold) {
-            // Temperature above setpoint + hysteresis - stop heating
+          } else if (current_temp >= upper_threshold) {
+            id(heating_status).publish_state("Idle");
             if (id(relay).state) {
               id(relay).turn_off();
-              ESP_LOGI("HEATING", "Stop heating: %.1f°C > %.1f°C (Priority 4)", current_temp, upper_threshold);
+              ESP_LOGI("HEATING", "Stop heating: %.1f°C >= %.1f°C (Priority 4)", current_temp, upper_threshold);
             }
           } else {
-            // Within deadband - maintain current state
-            ESP_LOGD("HEATING", "In deadband: %.1f-%.1f, Relay=%s (no change)",
+            // If we are in the deadband, the state is either "Heating" or "Idle" depending on the relay state
+            if (id(relay).state) {
+              id(heating_status).publish_state("Heating");
+            } else {
+              id(heating_status).publish_state("Idle");
+            }
+            ESP_LOGD("HEATING", "In deadband: (%.1f, %.1f), Relay=%s (no change)",
                      lower_threshold, upper_threshold, id(relay).state ? "ON" : "OFF");
           }
 
@@ -189,3 +191,22 @@ interval:
                     return !id(manual_run_active) && id(manual_run_timeout) == 0;
                 then:
                   - script.execute: disable_manual_run
+
+  # Periodic Display Refresh (every 5s)
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed() == false) {
+             // Refresh Temperature
+             if (!isnan(id(gazebo_temp).state)) {
+               int t = (int)id(gazebo_temp).state;
+               id(gazebo_nextion).send_command_printf("zero.temp.val=%d", t);
+               id(gazebo_nextion).send_command_printf("temp.val=%d", t);
+             }
+             // Refresh Humidity
+             if (!isnan(id(gazebo_humidity).state)) {
+               int h = (int)id(gazebo_humidity).state;
+               id(gazebo_nextion).send_command_printf("zero.precip.val=%d", h);
+               id(gazebo_nextion).send_command_printf("precip.val=%d", h);
+             }
+          }

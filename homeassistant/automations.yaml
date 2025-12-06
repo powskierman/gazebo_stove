@@ -1,0 +1,66 @@
+# ============================================================================
+# HOME ASSISTANT AUTOMATIONS - Gazebo Stove Schedule
+# ============================================================================
+# Priority 3: Schedule (Home Mode Time / Away Mode Time)
+#
+# Add these automations to your Home Assistant automations.yaml file
+# OR create them via the UI: Settings → Automations & Scenes → Automations
+#
+# IMPORTANT: Update the entity_id for select.presence_mode to match your
+# ESPHome device name. It will likely be:
+#   - select.gazebo_stove_presence_mode
+#   - select.presence_mode
+#   - Or check your Home Assistant entities list
+#
+# ============================================================================
+# AUTOMATION 1: Set Home Mode at Scheduled Time
+# ============================================================================
+
+- alias: "Gazebo: Set Home Mode at Time"
+  description: "Automatically set presence to home at configured time (Priority 3: Schedule)"
+  trigger:
+    - platform: time
+      at: input_datetime.home_mode_time
+  condition:
+    # Only run if schedule is enabled
+    - condition: state
+      entity_id: input_boolean.gazebo_heating_schedule
+      state: "on"
+  action:
+    - service: select.select_option
+      target:
+        entity_id: select.gazebo_stove_presence_mode
+      data:
+        option: "home"
+    - service: system_log.write
+      data:
+        level: info
+        message: "Gazebo: Automatic home mode enabled at {{ now().strftime('%H:%M') }}"
+  mode: single
+
+# ============================================================================
+# AUTOMATION 2: Set Away Mode at Scheduled Time
+# ============================================================================
+
+- alias: "Gazebo: Set Away Mode at Time"
+  description: "Automatically set presence to away at configured time (Priority 3: Schedule)"
+  trigger:
+    - platform: time
+      at: input_datetime.away_mode_time
+  condition:
+    # Only run if schedule is enabled
+    - condition: state
+      entity_id: input_boolean.gazebo_heating_schedule
+      state: "on"
+  action:
+    - service: select.select_option
+      target:
+        entity_id: select.gazebo_stove_presence_mode
+      data:
+        option: "away"
+    - service: system_log.write
+      data:
+        level: info
+        message: "Gazebo: Automatic away mode enabled at {{ now().strftime('%H:%M') }}"
+  mode: single
+

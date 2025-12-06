@@ -15,6 +15,7 @@ esphome:
             wifi.connected:
           timeout: 30s
       - logger.log: "WiFi connected, initializing components"
+      - script.execute: init_nextion
 
 # ============================================================================
 # BOARD SELECTION & CONFIGURATION

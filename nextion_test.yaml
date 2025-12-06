@@ -1,0 +1,67 @@
+esphome:
+  name: nextion-test
+  friendly_name: Nextion Test
+  build_path: /Users/michel/.gemini/antigravity/build/nextion_test
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+  baud_rate: 115200
+
+# Define the UART for Nextion
+uart:
+  id: nextion_uart
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 115200
+
+# OneWire Bus for DS18B20
+one_wire:
+  - platform: gpio
+    id: ow_bus
+    pin: GPIO4
+
+# Define the Nextion Display
+display:
+  - platform: nextion
+    id: my_nextion
+    uart_id: nextion_uart
+    update_interval: 1s
+    lambda: |-
+      if (id(gazebo_temp).has_state()) {
+        // Send temperature to component 'temp' (Number)
+        ESP_LOGD("nextion_debug", "Sending temp: %.1f", id(gazebo_temp).state);
+        it.send_command_printf("temp.val=%d", (int)id(gazebo_temp).state);
+        it.send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
+      }
+      if (id(simulated_humidity).has_state()) {
+          // Send humidity to 'precip' (Number on page zero)
+          ESP_LOGD("nextion_debug", "Sending humidity: %.1f", id(simulated_humidity).state);
+          it.send_command_printf("precip.val=%d", (int)id(simulated_humidity).state);
+          it.send_command_printf("zero.precip.val=%d", (int)id(simulated_humidity).state);
+      }
+
+# Sensors
+sensor:
+  - platform: dallas_temp
+    one_wire_id: ow_bus
+    id: gazebo_temp
+    name: "Gazebo Temperature"
+    address: 0x7ce066bd0164ff28
+    resolution: 12
+    update_interval: 2s
+
+  - platform: template
+    name: "Simulated Humidity"
+    id: simulated_humidity
+    update_interval: 5s
+    lambda: |-
+      return 45.0 + ((millis() / 1000) % 20); // Fluctuates between 45 and 65
+ 
+  - platform: uptime
+    name: "Uptime Sensor"
+    id: uptime_sensor

@@ -420,9 +420,10 @@ display:
     tft_url: "http://192.168.2.10/gazebo.tft"  # Display firmware upload
     lambda: |-
       // Update display components
+      // Note: Ensure 'three.n1' is accessible (Page 3 active or component is global)
       it.set_component_value("three.n1", int(id(gazebo_temp).state + id(temp_offset).state));
-      it.set_component_value("three.n0", id(desired_temp).state);
-      it.set_component_text("status_text", id(status_msg).c_str());
+      it.set_component_value("three.n0", (int)id(desired_temp).state);
+      it.set_component_text("status_text", id(status_msg).state.c_str());
 
 text_sensor:
   - platform: template
@@ -691,6 +692,16 @@ void GetPresets() {
 **ESPHome Implementation** (Home Assistant automations)
 ```yaml
 # Settings stored as Home Assistant input_* entities
+globals:
+  - id: desired_temp
+    type: float
+    restore_value: no
+    initial_value: '22.0'
+  - id: temp_offset
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+
 input_number:
   desired_temperature:
     name: Desired Temperature
@@ -762,6 +773,12 @@ void OtherUpdates() {
 
 **ESPHome Implementation** (gazebo_stove.yaml)
 ```yaml
+globals:
+  - id: bad_read_count
+    type: int
+    restore_value: no
+    initial_value: '0'
+
 sensor:
   - platform: dallas_temp
     one_wire_id: ow_bus

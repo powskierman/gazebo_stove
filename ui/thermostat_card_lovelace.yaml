@@ -1,0 +1,50 @@
+# ============================================================================
+# LOVELACE THERMOSTAT CARD
+# ============================================================================
+# Install: Add custom repository in HACS
+# https://github.com/nervetattoo/simple-thermostat
+#
+# This card shows a nice circular thermostat display with:
+# - Current temperature in center
+# - Desired temperature as target ring
+# - Mode selector (heat/off or in our case, presence mode)
+# - Cleaner visual than entities card
+# ============================================================================
+
+type: custom:simple-thermostat
+entity: sensor.gazebo_stove_gazebo_temperature
+target_temperature: number.gazebo_stove_desired_temperature
+current_temperature: sensor.gazebo_stove_gazebo_temperature
+away_temperature: number.gazebo_stove_desired_temperature
+step_size: 0.5
+min_temperature: 5
+max_temperature: 35
+control:
+  - service: number.set_value
+    target:
+      entity_id: number.gazebo_stove_desired_temperature
+    data:
+      value: '{{ temperature }}'
+features:
+  - type: climate-preset-modes
+    modes:
+      - icon: mdi:home
+        name: Home
+        service_data:
+          option: home
+      - icon: mdi:power-off
+        name: Away
+        service_data:
+          option: away
+    service: select.select_option
+    target:
+      entity_id: select.gazebo_stove_presence_mode
+  - type: set-preset-mode-buttons
+    modes:
+      - preset_mode: home
+        icon: mdi:home
+      - preset_mode: away
+        icon: mdi:power-off
+  - type: target-temperature
+    step_size: 0.5
+name: Gazebo Stove Thermostat

@@ -1,0 +1,178 @@
+# ============================================================================
+# HOME ASSISTANT CONFIGURATION - Gazebo Stove
+# ============================================================================
+# Priority 3: Schedule (Home Mode Time / Away Mode Time)
+# Priority 4: Thermostat Template Entity (for UI)
+#
+# Add this section to your Home Assistant configuration.yaml file
+# OR create these entities via the UI: Settings → Devices & Services → Helpers
+#
+# IMPORTANT: Update entity IDs to match your ESPHome device names
+# Common patterns: gazebo_stove, gazebo-stove, or check your entities list
+#
+# ============================================================================
+# DATE/TIME SENSORS - System Time and Date Information
+# ============================================================================
+# Creates the following sensor entities:
+#   - sensor.date_time (datetime format)
+#   - sensor.date (date only)
+#   - sensor.time (time only)
+#   - sensor.date_time_utc (UTC datetime)
+#   - sensor.date_time_iso (ISO format)
+#   - sensor.time_date (time and date combined)
+#   - sensor.time_utc (UTC time only)
+
+sensor:
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'date_time_utc'
+      - 'date_time_iso'
+      - 'time_date'
+      - 'time_utc'
+
+# ============================================================================
+# WEATHER SENSORS - Open-Meteo Integration for Outdoor Temperature/Humidity
+# ============================================================================
+# Requires: Open-Meteo integration installed (free, no API key needed)
+# Creates the following entities:
+#   - weather.openmeteo (primary weather integration)
+#   - sensor.outside_temperature_deck (current outdoor temperature)
+#   - sensor.outside_humidity_deck (current outdoor humidity)
+#
+# NOTE: These use the Open-Meteo free API (no registration required)
+# To set up:
+# 1. Go to Settings → Devices & Services → Create Automation
+# 2. Search for "Open-Meteo" integration
+# 3. Configure with your latitude/longitude
+# 4. Adjust entity names if different from examples above
+
+weather:
+  - platform: openmeteo
+
+# ============================================================================
+# SCHEDULE CONTROL - Enable/Disable Schedule Feature (Priority 3)
+# ============================================================================
+
+input_boolean:
+  gazebo_schedule_enabled:
+    name: "Gazebo Heating Schedule"
+    icon: mdi:calendar-clock
+    initial: true
+
+# ============================================================================
+# TIME INPUT ENTITIES - Schedule Configuration (Priority 3)
+# ============================================================================
+
+input_datetime:
+  gazebo_home_mode_time:
+    name: "Gazebo Home Mode Time"
+    has_date: false
+    has_time: true
+    icon: mdi:home-clock
+    initial: "06:00:00"
+
+  gazebo_away_mode_time:
+    name: "Gazebo Away Mode Time"
+    has_date: false
+    has_time: true
+    icon: mdi:clock-out
+    initial: "22:00:00"
+
+# ============================================================================
+# THERMOSTAT CONFIGURATION - Temperature Control Setup
+# ============================================================================
+# NOTE: If your Home Assistant version is 2024.6+, you can use the template
+# climate entity syntax (template: - climate:) for a custom thermostat card.
+#
+# For earlier versions, use one of these options:
+#
+# OPTION 1: Create a generic thermostat (simplest):
+#   1. Go to Settings → Devices & Services → Create Helper
+#   2. Choose "Generic Thermostat"
+#   3. Set heater entity to: switch.propane_stove_relay
+#   4. Set current temperature sensor to: sensor.gazebo_temperature
+#   5. Set desired temp entity to: number.desired_temperature
+#
+# OPTION 2: Use ESPHome climate platform (if available):
+#   The climate entity may already be available from ESPHome as:
+#   - climate.gazebo_stove_propane_stove_thermostat
+#   - climate.propane_stove_thermostat
+#   Check Settings → Devices & Services → Entities
+#
+# OPTION 3: Create a template climate entity (Home Assistant 2024.6+):
+#   Uncomment the section below if your HA version supports template climate
+#
+# ============================================================================
+# TEMPLATE CLIMATE ENTITY (Home Assistant 2024.6+)
+# ============================================================================
+# Uncomment this section if you're running Home Assistant 2024.6 or later
+#
+# template:
+#   - climate:
+#       - name: "Propane Stove Thermostat"
+#         unique_id: gazebo_propane_stove_thermostat
+#         current_temperature: "{{ states('sensor.gazebo_temperature') | float }}"
+#         target_temperature: "{{ states('number.desired_temperature') | float }}"
+#         target_temperature_step: 0.5
+#         min_temp: 5
+#         max_temp: 35
+#         hvac_modes:
+#           - "heat"
+#           - "off"
+#         preset_modes:
+#           - "home"
+#           - "away"
+#         preset_mode: "{{ 'home' if states('select.presence_mode') == 'home' else 'away' }}"
+#         temperature_unit: C
+#         set_temperature:
+#           service: number.set_value
+#           target:
+#             entity_id: number.desired_temperature
+#           data:
+#             value: "{{ temperature }}"
+#         set_preset_mode:
+#           service: select.select_option
+#           target:
+#             entity_id: select.presence_mode
+#           data:
+#             option: "{{ preset_mode }}"
+#         hvac_action: >-
+#           {% if states('switch.propane_stove_relay') == 'on' %}
+#             heating
+#           {% elif states('select.presence_mode') == 'away' %}
+#             off
+#           {% elif states('switch.manual_stop') == 'on' %}
+#             off
+#           {% else %}
+#             idle
+#           {% endif %}
+#
+# ============================================================================
+# GENERIC THERMOSTAT (Home Assistant 2024.5 and earlier)
+# ============================================================================
+# Uncomment this section if template climate is not supported
+#
+# climate:
+#   - platform: generic_thermostat
+#     name: "Propane Stove Thermostat"
+#     heater: switch.propane_stove_relay
+#     target_sensor: sensor.gazebo_temperature
+#     min_temp: 5
+#     max_temp: 35
+#     ac_mode: false
+#     target_temp: 22
+#     cold_tolerance: 0.5
+#     hot_tolerance: 0.5
+#     min_cycle_duration:
+#       minutes: 5
+#     away_temp: 16
+#
+# NOTE: Update entity IDs above to match your ESPHome device names:
+#   - switch.propane_stove_relay (or switch.gazebo_stove_propane_stove_relay)
+#   - sensor.gazebo_temperature (or your actual temperature sensor)
+#
+# ============================================================================
+

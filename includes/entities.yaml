@@ -150,6 +150,12 @@ text_sensor:
         return std::string("OK - Display Offline");
       }
 
+  # Heating Status
+  - platform: template
+    name: "Heating Status"
+    id: heating_status
+    icon: "mdi:power"
+
 # ============================================================================
 # GLOBAL VARIABLES - Internal State Tracking
 # ============================================================================

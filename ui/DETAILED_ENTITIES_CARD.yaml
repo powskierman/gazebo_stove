@@ -1,0 +1,333 @@
+# ============================================================================
+# HOME ASSISTANT DETAILED ENTITIES CARD
+# Gazebo Stove Thermostat, Controls & Diagnostics
+# ============================================================================
+#
+# This is a comprehensive entities card with full organization, dividers,
+# and grouped sections for easy monitoring and control of your Gazebo Stove.
+#
+# HOW TO ADD TO YOUR DASHBOARD:
+# ============================================================================
+# 1. In Home Assistant, go to your dashboard
+# 2. Click the pencil icon (Edit Dashboard)
+# 3. Click "Add Card" → "Manual"
+# 4. Copy ALL content from below the second line of equals signs
+# 5. Paste into the YAML editor
+# 6. Click "Save"
+# 7. Exit edit mode (click outside the card or press Esc)
+#
+# TROUBLESHOOTING:
+# ============================================================================
+# - If entities don't show: Check that entity names exactly match your setup
+# - If card is blank: Some entities may not exist - comment them out with #
+# - Red warning on card: One or more entities are unavailable/unknown
+#
+# ============================================================================
+
+type: entities
+title: Gazebo Stove - Controls & Status
+show_header_toggle: false
+
+entities:
+  # ========================================================================
+  # SECTION 1: THERMOSTAT STATUS
+  # ========================================================================
+  # Shows current and desired temperature, plus thermostat state
+  #
+  - entity: sensor.gazebo_stove_gazebo_temperature
+    name: "🌡️ Current Temperature"
+    icon: mdi:thermometer
+
+  - entity: number.gazebo_stove_desired_temperature
+    name: "🎯 Desired Temperature"
+    icon: mdi:thermometer-plus
+
+  - entity: switch.gazebo_stove_propane_stove_relay
+    name: "🔥 Relay Status (Heating On/Off)"
+    icon: mdi:fire
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 2: PRESENCE & SCHEDULE MODE
+  # ========================================================================
+  # Controls whether stove operates in Home or Away mode
+  #
+  - entity: select.gazebo_stove_presence_mode
+    name: "🏠 Current Mode (Home/Away)"
+    icon: mdi:home-account
+
+  - entity: switch.gazebo_stove_heating_schedule
+    name: "📅 Heating Schedule Enabled"
+    icon: mdi:calendar-clock
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 3: SCHEDULE TIMES
+  # ========================================================================
+  # Set what time to switch between Home Mode (heating) and Away Mode (off)
+  # Format: Use 24-hour time (0-23 for hours, 0-59 for minutes)
+  #
+  - entity: number.gazebo_stove_home_mode_time_hour
+    name: "⏰ Home Mode - Hour (0-23)"
+    icon: mdi:home-clock
+
+  - entity: number.gazebo_stove_home_mode_time_minute
+    name: "⏱️ Home Mode - Minute (0-59)"
+    icon: mdi:home-clock
+
+  - entity: number.gazebo_stove_away_mode_time_hour
+    name: "⏰ Away Mode - Hour (0-23)"
+    icon: mdi:clock-out
+
+  - entity: number.gazebo_stove_away_mode_time_minute
+    name: "⏱️ Away Mode - Minute (0-59)"
+    icon: mdi:clock-out
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 4: MANUAL OVERRIDES
+  # ========================================================================
+  # Emergency controls that override the schedule
+  # Manual Run: Forces heating for 15 minutes (Priority 2)
+  # Manual Stop: Turns off stove immediately (Priority 1 - Highest)
+  #
+  - entity: switch.gazebo_stove_manual_run
+    name: "🚨 Emergency Heat (15 min)"
+    icon: mdi:fire-alert
+
+  - entity: switch.gazebo_stove_manual_stop
+    name: "❌ Force Off (Highest Priority)"
+    icon: mdi:power-off
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 5: SENSOR CALIBRATION
+  # ========================================================================
+  # Fine-tune temperature readings and heating behavior
+  #
+  - entity: number.gazebo_stove_temperature_offset
+    name: "📏 Temperature Offset (-5 to +5°C)"
+    icon: mdi:pencil
+
+  - entity: number.gazebo_stove_heating_hysteresis
+    name: "〰️ Heating Hysteresis"
+    icon: mdi:sine-wave
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 6: SYSTEM DIAGNOSTICS & STATUS
+  # ========================================================================
+  # Monitors system health and current operation state
+  #
+  - entity: binary_sensor.gazebo_stove_sensor_malfunction
+    name: "⚠️ Sensor Malfunction"
+    icon: mdi:alert-circle
+
+  - entity: sensor.gazebo_stove_system_status
+    name: "ℹ️ System Status"
+    icon: mdi:information
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 7: DEVICE INFORMATION & CONTROL
+  # ========================================================================
+  # WiFi connectivity, LED status, and device management
+  #
+  - entity: sensor.gazebo_stove_wifi_signal_strength
+    name: "📡 WiFi Signal Strength"
+    icon: mdi:wifi
+
+  - entity: light.gazebo_stove_status_led
+    name: "💡 Status LED"
+    icon: mdi:led-on
+
+  - type: divider
+
+  # ========================================================================
+  # SECTION 8: DEVICE CONTROL & MAINTENANCE
+  # ========================================================================
+  # Restart or safely shutdown the ESPHome device
+  #
+  - entity: button.gazebo_stove_device_restart
+    name: "🔄 Restart Device"
+    icon: mdi:restart
+
+  - entity: button.gazebo_stove_safe_shutdown
+    name: "🛑 Safe Shutdown"
+    icon: mdi:power
+
+# ============================================================================
+# ENTITY REFERENCE & PRIORITY SYSTEM
+# ============================================================================
+#
+# PRIORITY LEVELS (How the stove decides to heat):
+# ============================================================================
+# Priority 1 (Highest):  Manual Stop (Force Off) - Turn stove OFF immediately
+# Priority 2:             Manual Run (Emergency Heat) - Turn stove ON for 15 min
+# Priority 3:             Schedule Mode (Home/Away) - Use schedule times
+# Priority 4 (Lowest):    Temperature Control - Heat until desired temp reached
+#
+# ENTITY IDS & DESCRIPTIONS:
+# ============================================================================
+#
+# TEMPERATURE:
+#   sensor.gazebo_stove_gazebo_temperature
+#     → ESPHome temperature sensor reading (DS18B20)
+#     → Real-time current temperature
+#
+#   number.gazebo_stove_desired_temperature
+#     → Target temperature you want (adjustable slider)
+#     → Range: 5-35°C typically
+#     → Priority 4 uses this to heat/stop
+#
+# RELAY CONTROL:
+#   switch.gazebo_stove_propane_stove_relay
+#     → GPIO12 relay switch controlling propane valve
+#     → ON = heating, OFF = no heating
+#     → Result of priority system decisions
+#
+# PRESENCE/MODE:
+#   select.gazebo_stove_presence_mode
+#     → Selector: "Home" or "Away"
+#     → Manual override of schedule
+#     → Part of Priority 3 (Schedule)
+#
+#   switch.gazebo_stove_heating_schedule
+#     → Enable/disable the automatic schedule
+#     → When OFF: Schedule doesn't run (stays in current mode)
+#     → When ON: Switches modes at scheduled times
+#
+# SCHEDULE TIMES (24-hour format):
+#   number.gazebo_stove_home_mode_time_hour/minute
+#     → Time to switch to Home Mode (heating enabled)
+#     → Example: 06:00 (6am) = Home Mode Hour: 6, Minute: 0
+#
+#   number.gazebo_stove_away_mode_time_hour/minute
+#     → Time to switch to Away Mode (heating disabled)
+#     → Example: 22:00 (10pm) = Away Mode Hour: 22, Minute: 0
+#
+# CALIBRATION:
+#   number.gazebo_stove_temperature_offset
+#     → Adjust sensor reading if it's not accurate
+#     → Positive = sensor reads too high, adjust down
+#     → Negative = sensor reads too low, adjust up
+#     → Range: -5 to +5°C
+#
+#   number.gazebo_stove_heating_hysteresis
+#     → Prevents relay from fluttering on/off at target temp
+#     → Typical: 0.5°C (stops heating when within 0.5° of target)
+#
+# OVERRIDE CONTROLS:
+#   switch.gazebo_stove_manual_run
+#     → Manually turn on heating for 15 minutes
+#     → Priority 2 (overrides schedule)
+#     → Auto-disables after 15 minutes
+#     → Use for emergency heating
+#
+#   switch.gazebo_stove_manual_stop
+#     → Immediately stop heating
+#     → Priority 1 (highest - overrides everything)
+#     → Prevents any heating until turned OFF
+#     → Use for emergency shutdown
+#
+# DIAGNOSTICS:
+#   binary_sensor.gazebo_stove_sensor_malfunction
+#     → ON = Temperature sensor failure detected
+#     → OFF = Sensor reading normally
+#     → Check sensor wiring if this triggers
+#
+#   sensor.gazebo_stove_system_status
+#     → Text description of current system state
+#     → Shows which priority is active
+#     → Shows reason for current relay state
+#
+# CONNECTIVITY:
+#   sensor.gazebo_stove_wifi_signal_strength
+#     → WiFi signal strength in dBm
+#     → -30 to -90 range (higher is better)
+#     → Affects responsiveness
+#
+#   light.gazebo_stove_status_led
+#     → RGB LED on the ESPHome device
+#     → ON/OFF controls LED power
+#     → Can be used for visual feedback
+#
+# MAINTENANCE:
+#   button.gazebo_stove_device_restart
+#     → Restart the ESPHome microcontroller
+#     → Takes ~10 seconds
+#     → Maintains all settings
+#     → Use if device becomes unresponsive
+#
+#   button.gazebo_stove_safe_shutdown
+#     → Gracefully shut down the device
+#     → Relay goes OFF before shutdown
+#     → Device can be unplugged safely
+#     → Use before maintenance
+#
+# ============================================================================
+# HOW THE PRIORITY SYSTEM WORKS
+# ============================================================================
+#
+# The stove uses a 4-level priority system to decide when to heat:
+#
+# Priority 1 (Manual Stop):
+#   IF Manual Stop is ON → Relay OFF (stops heating immediately)
+#   └─ Emergency shutdown, highest priority
+#
+# Priority 2 (Manual Run):
+#   ELSE IF Manual Run is ON → Relay ON (heat for 15 minutes)
+#   └─ Emergency heating, 15-minute timer
+#
+# Priority 3 (Schedule Mode):
+#   ELSE IF Schedule Enabled AND current time matches:
+#     IF Schedule time says "Home Mode" → Current Mode = Home
+#     ELSE IF Schedule time says "Away Mode" → Current Mode = Away
+#
+#   IF Current Mode = Home → Enable heating
+#   IF Current Mode = Away → Disable heating
+#   └─ Time-based automatic mode switching
+#
+# Priority 4 (Temperature Control):
+#   ELSE (if current mode allows heating):
+#     IF Current Temperature < Desired Temperature
+#       → Relay ON (heat until target reached)
+#     ELSE IF Current Temperature >= (Desired Temperature + Hysteresis)
+#       → Relay OFF (stop heating)
+#   └─ Maintains desired temperature
+#
+# ============================================================================
+# TEMPERATURE READING DISPLAY
+# ============================================================================
+# The current temperature shows what the DS18B20 sensor is reading.
+# If the reading seems off:
+#
+# 1. Check that "Temperature Offset" is correct (should be 0 normally)
+# 2. Verify sensor is installed in the right location
+# 3. Check for loose wiring
+# 4. If offset is needed, adjust by -X or +X°C in the offset field
+#
+# ============================================================================
+# TYPICAL SETUP EXAMPLE
+# ============================================================================
+#
+# Morning Schedule:
+#   Home Mode Time: 06:00 (6 AM)
+#   Away Mode Time: 22:00 (10 PM)
+#   Desired Temp: 20°C
+#
+# Behavior:
+#   6:00 AM  → Schedule switches to HOME MODE → Heating enabled
+#              Stove heats to 20°C then maintains (Priority 4)
+#   10:00 PM → Schedule switches to AWAY MODE → Heating disabled
+#              Stove turns off (Priority 3 overrides Priority 4)
+#   Anytime → Manually toggle "Emergency Heat" for 15 min boost (Priority 2)
+#   Anytime → Toggle "Force Off" to immediately stop (Priority 1)
+#
+# ============================================================================

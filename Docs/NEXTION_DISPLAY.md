@@ -39,37 +39,60 @@ The Nextion display is a critical user interface component showing real-time wea
 
 ## Page Architecture
 
+**Status**: 
+- ✅ **Page 0 (Extérieur)**: OPERATIONAL - Temperature display working, ready for testing
+- ❌ **Page 1 (Ressentie)**: NON-OPERATIONAL - Weather functionality not implemented yet
+- ❌ **Page 2 (Prévisions)**: NON-OPERATIONAL - Weather functionality not implemented yet  
+- ✅ **Page 3 (Slider Control)**: OPERATIONAL - Temperature control working, ready for testing
+
+---
+
 ### Page 0: Extérieur (Exterior/Current Conditions)
+
+**Status**: ✅ **OPERATIONAL** - Ready for testing
 
 **Purpose**: Main dashboard showing real-time weather and heating status
 
-**Layout**:
+**Actual Layout** (from Nextion display):
 ```
 ┌─────────────────────────────────────┐
-│         Extérieur (now0)            │
+│         Extérieur                   │
+│         (now0)                      │
 │                                     │
 │         [Weather Icon]              │
+│         (cloud/storm graphic)       │
 │                                     │
 │         temp: 88 °C                 │
+│         (large numbers)             │
 │                                     │
-│         precip: 888 %               │
+│         precip: 888 %              │
+│         (large numbers)            │
 │                                     │
-│     [b1: Heating Status Button]     │
-│     [Stove Graphic - Active/Idle]   │
+│         [b1: Status Button]        │
+│         [Stove Graphic]            │
+│         (black stove with flames)   │
 └─────────────────────────────────────┘
 ```
 
+**Visual Elements**:
+- **Title**: "Extérieur" centered at top
+- **Weather Icon**: Cloud/storm graphic below title
+- **Temperature**: Large "88" followed by "°C" (placeholder value)
+- **Precipitation**: Large "888" followed by "%" (placeholder value)
+- **Stove Graphic**: Black stove with orange/yellow flames visible through glass door (indicates heating active)
+- **Status Button**: Small button labeled "b1" (debug label visible)
+
 **Component Mapping**:
 
-| Component ID | Variable Name | Type | Data Format | Source | Update Frequency |
-|---|---|---|---|---|---|
-| Page Title | (static) | Text | "Extérieur" | Fixed | - |
-| Weather Icon | (icon element) | Image | WMO/OpenMeteo code → Icon ID | OpenMeteo API | 30 min |
-| Temperature | `temp` | Number | Integer °C | DS18B20 sensor | 2 sec |
-| Precipitation % | `precip` | Number | Integer % | OpenMeteo API | 30 min |
-| Now Indicator | `now0` | Text | "now" label | System time | 1 sec |
-| Status Button | `b1` | Button | Status indicator | Relay/Thermostat state | Real-time |
-| Stove Graphic | (image element) | Image | Active flames or idle | Relay state (GPIO12) | Real-time |
+| Component ID | Variable Name | Type | Data Format | Source | Update Frequency | Status |
+|---|---|---|---|---|---|---|
+| Page Title | (static) | Text | "Extérieur" | Fixed | - | ✅ Working |
+| Weather Icon | (icon element) | Image | WMO/OpenMeteo code → Icon ID | OpenMeteo API | 30 min | ⏸️ Pending US5 |
+| Temperature | `temp` | Number | Integer °C | DS18B20 sensor | 2 sec | ✅ **READY FOR TEST** |
+| Precipitation % | `precip` | Number | Integer % | OpenMeteo API | 30 min | ⏸️ Pending US5 |
+| Now Indicator | `now0` | Text | "now" label | System time | 1 sec | ✅ Working |
+| Status Button | `b1` | Button | Status indicator | Relay/Thermostat state | Real-time | ✅ Working |
+| Stove Graphic | (image element) | Image | Active flames or idle | Relay state (GPIO12) | Real-time | ✅ Working |
 
 **UART Commands for Page 0 Updates**:
 
@@ -100,42 +123,126 @@ b1.bco=0x0000FF  # Blue for idle
 
 ---
 
-### Page 1: Slider Control (Temperature Setpoint)
+### Page 1: Ressentie (Hourly Forecast - "Feels Like")
 
-**Purpose**: Interactive temperature setpoint adjustment
+**Status**: ❌ **NON-OPERATIONAL** - Weather functionality not implemented yet
 
-**Layout**:
+**Purpose**: 7-hour hourly weather forecast with temperatures and precipitation
+
+**Actual Layout** (from Nextion display):
 ```
 ┌─────────────────────────────────────┐
-│        Temperature Control          │
+│  ← Ressentie →                     │
+│  (b0)        (b1)                  │
 │                                     │
-│      Slider0 (gradient color)       │
-│      ├─ Yellow (hot): ~30°C         │
-│      ├─ Orange: ~25°C               │
-│      ├─ Red: ~20°C                  │
-│      ├─ Blue (cold): ~15°C          │
-│      └─ Deep Blue: ~5°C             │
-│                                     │
-│  n0: 99°C  [Weather Icon]  n1: 88°C │
-│  [Weather Icon]                     │
-│                                     │
-│  b2: (Navigation/Action Button)    │
-│  [Weather Icon]                     │
+│  dt0:00  [⚡]  f01°C  rain0%       │  Row 0
+│  dt1:00  [⚡]  f12°C  rain1%       │  Row 1
+│  dt2:00  [⚡]  f23°C  rain2%       │  Row 2
+│  dt3:00  [⚡]  f34°C  rain3%       │  Row 3
+│  dt4:00  [⚡]  f45°C  rain4%       │  Row 4
+│  dt5:00  [⚡]  f56°C  rain5%       │  Row 5
+│  dt6:00  [⚡]  f67°C  rain6%       │  Row 6
 └─────────────────────────────────────┘
 ```
 
+**Visual Elements**:
+- **Title**: "Ressentie" centered at top
+- **Navigation**: Left arrow (b0) and right arrow (b1) buttons
+- **7 Rows**: Each row shows:
+  - Time: `dt0` through `dt6` (format: "HH:00")
+  - Weather Icon: Yellow lightning bolt icon (placeholder)
+  - Temperature: `f01` through `f67` (placeholder values) followed by "°C"
+  - Precipitation: `rain0` through `rain6` (placeholder values) followed by "%"
+- **Placeholder Text**: "wxlco" visible in some rows (weather condition placeholder)
+
+**Note**: This page requires OpenMeteo API integration (User Story 5) which is not yet implemented.
+
+---
+
+### Page 2: Prévisions (Daily Forecast - "Forecasts")
+
+**Status**: ❌ **NON-OPERATIONAL** - Weather functionality not implemented yet
+
+**Purpose**: 7-day daily weather forecast with high/low temps and precipitation probability
+
+**Actual Layout** (from Nextion display):
+```
+┌─────────────────────────────────────┐
+│  ← Prévisions →                     │
+│  (b0)        (b1)                  │
+│                                     │
+│  dt10  [⚡]  tem0°C  prec0%        │  Day 0
+│  dt11  [⚡]  tem1°C  prec1%        │  Day 1
+│  dt12  [⚡]  tem2°C  prec2%        │  Day 2
+│  dt13  [⚡]  tem3°C  prec3%        │  Day 3
+│  dt14  [⚡]  tem4°C  prec4%        │  Day 4
+│  dt15  [⚡]  tem5°C  prec5%        │  Day 5
+│  dt16  [⚡]  tem6°C  prec6%        │  Day 6
+└─────────────────────────────────────┘
+```
+
+**Visual Elements**:
+- **Title**: "Prévisions" centered at top
+- **Navigation**: Left arrow (b0) and right arrow (b1) buttons
+- **7 Rows**: Each row shows:
+  - Date: `dt10` through `dt16` (day identifier)
+  - Weather Icon: Yellow lightning bolt icon (placeholder)
+  - Temperature: `tem0` through `tem6` (placeholder values) followed by "°C"
+  - Precipitation: `prec0` through `prec6` (placeholder values) followed by "%"
+- **Placeholder Text**: "wxlco", "tem", "prec" visible (placeholders for weather condition, temperature, precipitation)
+
+**Note**: This page requires OpenMeteo API integration (User Story 5) which is not yet implemented.
+
+---
+
+### Page 3: Slider Control (Temperature Setpoint)
+
+**Status**: ✅ **OPERATIONAL** - Ready for testing
+
+**Purpose**: Interactive temperature setpoint adjustment with visual slider
+
+**Actual Layout** (from Nextion display):
+```
+┌─────────────────────────────────────┐
+│                                     │
+│      Slider0                        │
+│      (vertical gradient slider)      │
+│      ├─ Orange (top)                │
+│      ├─ Pink (middle)               │
+│      └─ Purple (bottom)             │
+│      [Blue segmented indicator]     │
+│                                     │
+│  n0: 99°C    [☁️]    n1: 88°C      │
+│  (left)      (icon)   (right)      │
+│                                     │
+│         [b2: Button]                │
+│         (action button)            │
+└─────────────────────────────────────┘
+```
+
+**Visual Elements**:
+- **Slider**: Large vertical gradient slider (`Slider0`) with:
+  - Orange at top (hot)
+  - Pink in middle
+  - Purple at bottom (cold)
+  - Blue segmented horizontal indicator showing current position
+- **Current Temperature**: `n0` showing "99°C" (left side, large numbers)
+- **Weather Icon**: Cloud icon in center
+- **Desired Temperature**: `n1` showing "88°C" (right side, large numbers)
+- **Action Button**: `b2` button at bottom
+
 **Component Mapping**:
 
-| Component ID | Variable Name | Type | Data Format | Purpose | Interaction |
-|---|---|---|---|---|---|
-| Gradient Slider | `Slider0` | Slider | Value range: 0-100 | Visual temp control (maps to 5-35°C) | User touch input |
-| Current Temp | `n0` | Number | Integer °C | Actual temperature (left side) | Read-only |
-| Weather Icon | (icon element) | Image | WMO code → Icon ID | Current condition | Display only |
-| Desired Temp | `n1` | Number | Integer °C | Setpoint (right side) | Updates from Slider0 |
-| Action Button | `b2` | Button | Button state | Confirm/Apply action | User touch |
-| Navigation Button | (nav arrows) | Buttons | Page selection | Switch pages | User touch |
+| Component ID | Variable Name | Type | Data Format | Purpose | Interaction | Status |
+|---|---|---|---|---|---|---|
+| Gradient Slider | `Slider0` | Slider | Value range: 0-100 | Visual temp control (maps to 5-35°C) | User touch input | ✅ **READY FOR TEST** |
+| Current Temp | `n0` | Number | Integer °C | Actual temperature (left side) | Read-only | ✅ **READY FOR TEST** |
+| Weather Icon | (icon element) | Image | WMO code → Icon ID | Current condition | Display only | ⏸️ Pending US5 |
+| Desired Temp | `n1` | Number | Integer °C | Setpoint (right side) | Updates from Slider0 | ✅ **READY FOR TEST** |
+| Action Button | `b2` | Button | Button state | Confirm/Apply action | User touch | ✅ Working |
+| Navigation Button | (nav arrows) | Buttons | Page selection | Switch pages | User touch | ✅ Working |
 
-**UART Commands for Page 1 Updates**:
+**UART Commands for Page 3 Updates**:
 
 ```
 # Update current temperature (left side)
@@ -153,7 +260,7 @@ n1.val=24
 Slider0.val=57
 
 # Slider gradient can be pre-configured in Nextion firmware
-# (color gradient from yellow → red → blue)
+# (color gradient from orange → pink → purple)
 ```
 
 **Touch Event Handling**:
@@ -168,7 +275,7 @@ Slider0.val=57
 
 # Example touch handler in ESPHome:
 on_touch:
-  if: id(page_index) == 1  # Page 1 only
+  if: id(page_index) == 3  # Page 3 only
   then:
     - lambda: |-
         // Slider0 touched, calculate new setpoint
@@ -184,36 +291,6 @@ on_touch:
 
 ---
 
-### Page 2: Ressentie (Hourly Forecast - "Feels Like")
-
-**Purpose**: 7-hour hourly weather forecast with temperatures and precipitation
-
-**Layout**:
-```
-┌─────────────────────────────────────┐
-│  ← Ressentie →  (Navigation arrows) │
-│                                     │
-│ dt0:00  [wxIcon]  tt0°C  rain0%    │  Row 0
-│ dt1:00  [wxIcon]  tt1°C  rain1%    │  Row 1
-│ dt2:00  [wxIcon]  tt2°C  rain2%    │  Row 2
-│ dt3:00  [wxIcon]  tt3°C  rain3%    │  Row 3
-│ dt4:00  [wxIcon]  tt4°C  rain4%    │  Row 4
-│ dt5:00  [wxIcon]  tt5°C  rain5%    │  Row 5
-│ dt6:00  [wxIcon]  tt6°C  rain6%    │  Row 6
-│                                     │
-└─────────────────────────────────────┘
-```
-
-**Component Mapping (7 Rows, 0-6)**:
-
-| Component ID | Variable Name | Type | Data Format | Source | Update Frequency |
-|---|---|---|---|---|---|
-| Time | `dt0-dt6` | Text | "HH:00" format | System time + offset | 30 min (with forecast) |
-| Weather Icon | `wxIcon` (per row) | Image | WMO code → Icon ID | OpenMeteo API | 30 min |
-| Temperature | `tt0-tt6` | Number | Integer °C | OpenMeteo API | 30 min |
-| Precipitation % | `rain0-rain6` | Number | Integer % | OpenMeteo API | 30 min |
-| Navigation Prev | `b0` | Button | Arrow button | Page navigation | User touch |
-| Navigation Next | `b1` | Button | Arrow button | Page navigation | User touch |
 
 **UART Commands for Page 2 Updates** (Example for Row 0):
 
@@ -269,36 +346,6 @@ sensor:
 
 ---
 
-### Page 3: Prévisions (Daily Forecast - "Forecasts")
-
-**Purpose**: 7-day daily weather forecast with high/low temps and precipitation probability
-
-**Layout**:
-```
-┌─────────────────────────────────────┐
-│  ← Prévisions →  (Navigation arrows)│
-│                                     │
-│ dt10  [wxIcon]  tem0°C  prec0%     │  Day 0
-│ dt11  [wxIcon]  tem1°C  prec1%     │  Day 1
-│ dt12  [wxIcon]  tem2°C  prec2%     │  Day 2
-│ dt13  [wxIcon]  tem3°C  prec3%     │  Day 3
-│ dt14  [wxIcon]  tem4°C  prec4%     │  Day 4
-│ dt15  [wxIcon]  tem5°C  prec5%     │  Day 5
-│ dt16  [wxIcon]  tem6°C  prec6%     │  Day 6
-│                                     │
-└─────────────────────────────────────┘
-```
-
-**Component Mapping (7 Days, 0-6)**:
-
-| Component ID | Variable Name | Type | Data Format | Source | Update Frequency |
-|---|---|---|---|---|---|
-| Date | `dt10-dt16` | Text | "Mon", "Tue", or date | System + forecast | 3 hours |
-| Weather Icon | `wxIcon` (per row) | Image | WMO code → Icon ID | OpenMeteo API | 3 hours |
-| Temperature | `tem0-tem6` | Number | Integer °C (high/avg) | OpenMeteo API | 3 hours |
-| Precipitation % | `prec0-prec6` | Number | Integer % | OpenMeteo API | 3 hours |
-| Navigation Prev | `b0` | Button | Arrow button | Page navigation | User touch |
-| Navigation Next | `b1` | Button | Arrow button | Page navigation | User touch |
 
 **UART Commands for Page 3 Updates** (Example for Day 0):
 
@@ -495,43 +542,90 @@ sensor:
 
 ---
 
+## Testing & Validation
+
+### Page 0 Testing (Current Priority)
+
+**Test File**: `NEXTION_TEST_PAGE0.yaml`
+
+**Purpose**: Verify wiring and UART communication by cycling temperature 0→99→0
+
+**Test Procedure**:
+1. Flash `NEXTION_TEST_PAGE0.yaml` to device
+2. Verify display shows Page 0 (Extérieur)
+3. Observe temperature counting: 0→99 (100 seconds), then 98→0 (99 seconds)
+4. Verify updates occur every 1 second
+5. Check logs for UART communication errors
+
+**Success Criteria**:
+- ✅ Display shows correct temperature values (0→99→0)
+- ✅ Updates occur exactly every 1 second
+- ✅ No UART errors in logs
+- ✅ No display corruption or freezing
+- ✅ Cycle repeats smoothly
+
+**Component Under Test**: `temp` (Page 0 temperature display)
+
+**Related Tasks**: See `specs/001-gazebo-stove-heating-control/tasks.md` - User Story 4 Testing Tasks (T101-T135)
+
+---
+
+### Page 3 Testing (Next Priority)
+
+**Components to Test**:
+- `n0` - Current temperature display (left side)
+- `n1` - Desired temperature display (right side)
+- `Slider0` - Temperature setpoint slider
+
+**Test Procedure** (to be created):
+1. Verify `n0` displays current temperature from DS18B20 sensor
+2. Verify `n1` displays desired temperature from `desired_temp` entity
+3. Test slider touch input - verify setpoint changes
+4. Verify slider position updates when setpoint changes remotely
+
+---
+
 ## Implementation Checklist (Phase 6)
 
-### Week 11: Page 0 & 1 Implementation
+### Week 11: Page 0 & 3 Implementation (OPERATIONAL PAGES)
 
-- [ ] Set up UART communication (GPIO16/17 at 9600 baud)
-- [ ] Verify Nextion display responds to commands
+**Status**: 🔄 **IN PROGRESS** - Testing Page 0 wiring
+
+- [x] Set up UART communication (GPIO16/17 at 9600 baud)
+- [ ] **CURRENT**: Verify Nextion display responds to commands (using NEXTION_TEST_PAGE0.yaml)
 - [ ] Implement Page 0 (Extérieur) display updates:
-  - [ ] `temp` updates from DS18B20 (every 2 sec)
-  - [ ] `precip` updates from OpenMeteo (every 30 min)
-  - [ ] Weather icon updates
+  - [ ] **TESTING**: `temp` updates from DS18B20 (every 2 sec) - **USE TEST FILE FIRST**
+  - [ ] `precip` updates from OpenMeteo (every 30 min) - ⏸️ Pending US5
+  - [ ] Weather icon updates - ⏸️ Pending US5
   - [ ] `b1` status indicator (relay state)
   - [ ] Stove graphic updates (active/idle)
 - [ ] Test Page 0 display accuracy and update timing
-- [ ] Implement Page 1 (Slider Control):
+- [ ] Implement Page 3 (Slider Control):
   - [ ] Display current temperature (`n0`)
   - [ ] Display desired temperature (`n1`)
   - [ ] Implement Slider0 interaction (touch handling)
   - [ ] Map slider value (0-100) to temperature (5-35°C)
   - [ ] Test setpoint adjustment via slider
 
-### Week 12: Page 2 & 3 Implementation
+### Week 12: Page 1 & 2 Implementation (NON-OPERATIONAL - Pending US5)
+
+**Status**: ⏸️ **DEFERRED** - Requires User Story 5 (Weather Forecast Display) implementation
 
 - [ ] Implement OpenMeteo API integration
 - [ ] Implement WMO to icon conversion function
-- [ ] Implement Page 2 (Ressentie - hourly forecast):
+- [ ] Implement Page 1 (Ressentie - hourly forecast):
   - [ ] Fetch 7-hour hourly forecast every 30 min
   - [ ] Update `dt0-dt6` (times)
-  - [ ] Update `tt0-tt6` (temperatures)
+  - [ ] Update `f01-f67` (temperatures) - Note: actual component names may differ
   - [ ] Update `rain0-rain6` (precipitation %)
-  - [ ] Update `wxIcon0-wxIcon6` (weather icons)
+  - [ ] Update weather icons (replace lightning bolt placeholders)
   - [ ] Test hourly forecast accuracy
-- [ ] Implement Page 3 (Prévisions - daily forecast):
+- [ ] Implement Page 2 (Prévisions - daily forecast):
   - [ ] Fetch 7-day daily forecast every 3 hours
   - [ ] Update `dt10-dt16` (dates/days)
   - [ ] Update `tem0-tem6` (high temperatures)
   - [ ] Update `prec0-prec6` (precipitation %)
-  - [ ] Update weather icons
+  - [ ] Update weather icons (replace lightning bolt placeholders)
   - [ ] Test daily forecast accuracy
 - [ ] Test navigation between pages (arrow buttons b0, b1)
 - [ ] Verify all display updates are smooth and responsive

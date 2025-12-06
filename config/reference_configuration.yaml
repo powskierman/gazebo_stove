@@ -1,0 +1,82 @@
+alexa:
+  smart_home:
+
+history:
+
+http:
+#  ssl_certificate: /ssl/fullchain.pem
+#  ssl_key: /ssl/privkey.pem
+#  api_password: !secret hass_pass
+#  ssl_certificate: /config/ssl/certs/powskierman.duckdns.org/fullchain.pem
+#  ssl_key: /config/ssl/certs/powskierman.duckdns.org/privkey.pem
+  base_url: powskierman.duckdns.org:8123
+  ip_ban_enabled: true
+  login_attempts_threshold: 10
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - 172.30.33.0/24
+
+frontend:
+  themes: !include_dir_merge_named themes
+
+light:
+  - platform: group
+    name: Bedroom Lights
+    entities:
+      - light.lorraine_light
+      - light.michel_light
+
+sensor:
+  - platform: time_date
+    display_options:
+      - 'time'
+      - 'date'
+      - 'date_time'
+      - 'date_time_utc'
+      - 'date_time_iso'
+      - 'time_date'
+      - 'time_utc'
+
+input_datetime:
+  wakeup_time:
+    name: "Start lights at"
+    has_time: true
+    has_date: false
+    initial: "08:00"
+
+input_boolean:
+  wakeup_enabled:
+    name: "Wake-up lights"
+    initial: on
+    icon: mdi:theme-light-dark
+  sunset_enabled:
+    name: "Sunset lights"
+    initial: on
+    icon: mdi:theme-light-dark
+  wakeup_weekend:
+    name: "Enable Wake-up on weekends"
+    initial: off # I disable the system on default on weekends
+    icon: mdi:calendar-blank
+
+# ============================================================================
+# GAZEBO STOVE HEATING CONTROL - ESPHome Integration
+# ============================================================================
+# Single source of truth: ESPHome priority system controls the stove
+# Home Assistant displays individual entities (desired_temp, mode, relay state)
+# No need for a climate entity - the card shows all necessary controls
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+group: !include groups.yaml
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+entity_controller: !include entity_controller.yaml
+mqtt: !include mqtt.yaml
+
+logger:
+  default: warning  # this sets the default log level for all components
+  logs:
+    homeassistant.components.websocket_api: debug
