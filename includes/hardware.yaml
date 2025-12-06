@@ -123,4 +123,3 @@ switch:
             ESP_LOGI("MANUAL_STOP", "Disabled - Heating control restored");
             id(manual_stop).publish_state(false);
         - script.execute: manage_heating
-```
