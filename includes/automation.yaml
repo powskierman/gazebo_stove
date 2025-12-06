@@ -210,3 +210,35 @@ interval:
                id(gazebo_nextion).send_command_printf("precip.val=%d", h);
              }
           }
+
+  # Schedule Check (every 10s)
+  - interval: 10s
+    then:
+      - lambda: |-
+          if (id(enable_schedule).state) {
+            auto time = id(sntp_time).now();
+            if (time.is_valid()) {
+              char current_time[6];
+              sprintf(current_time, "%02d:%02d", time.hour, time.minute);
+              
+              // Check Home Time (e.g. "06:00:00" -> match "06:00")
+              if (id(ha_home_time).has_state() && id(ha_home_time).state.length() >= 5) {
+                 if (id(ha_home_time).state.substr(0, 5) == std::string(current_time)) {
+                    if (id(presence_mode).state != "home") {
+                       ESP_LOGI("SCHEDULE", "Time %s matches Home Time %s -> Switching to Home Mode", current_time, id(ha_home_time).state.c_str());
+                       id(presence_mode).make_call().set_option("home").perform();
+                    }
+                 }
+              }
+
+              // Check Away Time
+              if (id(ha_away_time).has_state() && id(ha_away_time).state.length() >= 5) {
+                 if (id(ha_away_time).state.substr(0, 5) == std::string(current_time)) {
+                    if (id(presence_mode).state != "away") {
+                       ESP_LOGI("SCHEDULE", "Time %s matches Away Time %s -> Switching to Away Mode", current_time, id(ha_away_time).state.c_str());
+                       id(presence_mode).make_call().set_option("away").perform();
+                    }
+                 }
+              }
+            }
+          }
