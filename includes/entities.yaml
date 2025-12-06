@@ -199,19 +199,4 @@ globals:
     restore_value: no
     initial_value: 'false'
 
-# ============================================================================
-# SCHEDULING - On-Device Logic
-# ============================================================================
-
-switch:
-  - platform: template
-    name: "Enable Schedule"
-    id: enable_schedule
-    icon: "mdi:calendar-clock"
-    restore_mode: RESTORE_DEFAULT_ON
-    optimistic: true
-    turn_on_action:
-      - logger.log: "Schedule Logic Enabled"
-    turn_off_action:
-      - logger.log: "Schedule Logic Disabled"
 
