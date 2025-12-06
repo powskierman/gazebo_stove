@@ -156,6 +156,20 @@ text_sensor:
     id: heating_status
     icon: "mdi:power"
 
+  # Import Home Time from HA
+  - platform: homeassistant
+    name: "Home Mode Time (HA)"
+    id: ha_home_time
+    entity_id: input_datetime.home_mode_time
+    internal: true 
+
+  # Import Away Time from HA
+  - platform: homeassistant
+    name: "Away Mode Time (HA)"
+    id: ha_away_time
+    entity_id: input_datetime.away_mode_time
+    internal: true
+
 # ============================================================================
 # GLOBAL VARIABLES - Internal State Tracking
 # ============================================================================
@@ -201,17 +215,3 @@ switch:
     turn_off_action:
       - logger.log: "Schedule Logic Disabled"
 
-text_sensor:
-  # Import Home Time from HA
-  - platform: homeassistant
-    name: "Home Mode Time (HA)"
-    id: ha_home_time
-    entity_id: input_datetime.home_mode_time
-    internal: true # Don't need to expose back to HA
-
-  # Import Away Time from HA
-  - platform: homeassistant
-    name: "Away Mode Time (HA)"
-    id: ha_away_time
-    entity_id: input_datetime.away_mode_time
-    internal: true
