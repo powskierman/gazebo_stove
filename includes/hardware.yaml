@@ -97,6 +97,8 @@ switch:
     icon: "mdi:power-off"
     restore_mode: ALWAYS_OFF
     assumed_state: false
+    lambda: |-
+      return id(manual_stop_active);
     turn_on_action:
       then:
         - logger.log: "Manual Stop enabled - Heating disabled"
