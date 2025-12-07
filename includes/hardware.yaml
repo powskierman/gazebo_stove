@@ -126,12 +126,14 @@ switch:
 
   # Schedule Enable Switch
   - platform: template
-    name: "Enable Schedule"
-    id: enable_schedule
+    name: "Schedule Enabled"
+    id: schedule_enabled
     icon: "mdi:calendar-clock"
     restore_mode: RESTORE_DEFAULT_ON
-    optimistic: true
+    optimistic: yes
     turn_on_action:
-      - logger.log: "Schedule Logic Enabled"
+      then:
+        - logger.log: "Schedule enabled - Automatic home/away switching"
     turn_off_action:
-      - logger.log: "Schedule Logic Disabled"
+      then:
+        - logger.log: "Schedule disabled - Manual presence mode only"

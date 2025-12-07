@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Volumes/work/GazeboStove/**)",
+      "Bash(esphome compile:*)",
+      "Bash(esphome clean:*)",
+      "Read(//Users/michel/Pictures/Photos Library.photoslibrary/originals/4/**)",
+      "Read(//Users/michel/Pictures/Photos Library.photoslibrary/originals/5/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

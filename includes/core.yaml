@@ -32,12 +32,17 @@ esp32:
 # ============================================================================
 
 logger:
-  level: DEBUG
+  level: INFO
   logs:
-    uart.debug: DEBUG
-    component: DEBUG
-    sensor: DEBUG
-    template.number: DEBUG
+    # Reduce log verbosity to prevent API connection overload
+    # Set to DEBUG only when troubleshooting specific issues
+    uart.debug: INFO
+    component: WARN
+    sensor: WARN
+    # Keep important components at INFO level
+    schedule: INFO
+    heating: INFO
+    priority: INFO
 
 # ============================================================================
 # WIFI CONFIGURATION

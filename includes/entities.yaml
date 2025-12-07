@@ -156,19 +156,32 @@ text_sensor:
     id: heating_status
     icon: "mdi:power"
 
-  # Import Home Time from HA
-  - platform: homeassistant
-    name: "Home Mode Time (HA)"
-    id: ha_home_time
-    entity_id: input_datetime.home_mode_time
-    internal: true 
+# ============================================================================
+# DATETIME ENTITIES - Schedule Times (24-hour format)
+# ============================================================================
+# Note: Entity IDs use numbering (1, 2) to ensure Home appears before Away
+# in Home Assistant UI (alphabetical sorting by entity_id)
 
-  # Import Away Time from HA
-  - platform: homeassistant
-    name: "Away Mode Time (HA)"
-    id: ha_away_time
-    entity_id: input_datetime.away_mode_time
-    internal: true
+datetime:
+  # Home Mode Start Time (24-hour format time picker)
+  - platform: template
+    type: time
+    name: "Home Time (24h)"
+    id: schedule_1_home
+    icon: "mdi:home-clock"
+    optimistic: yes
+    initial_value: "06:00:00"
+    restore_value: true
+
+  # Away Mode Start Time (24-hour format time picker)
+  - platform: template
+    type: time
+    name: "Away Time (24h)"
+    id: schedule_2_away
+    icon: "mdi:clock-outline"
+    optimistic: yes
+    initial_value: "22:00:00"
+    restore_value: true
 
 # ============================================================================
 # GLOBAL VARIABLES - Internal State Tracking

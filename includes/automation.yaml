@@ -211,34 +211,63 @@ interval:
              }
           }
 
-  # Schedule Check (every 10s)
-  - interval: 10s
+  # Periodic heating evaluation every 30 seconds
+  # This ensures manage_heating runs even when temperature is stable
+  # (delta filter on temperature sensor prevents on_value from firing)
+  - interval: 30s
     then:
-      - lambda: |-
-          if (id(enable_schedule).state) {
-            auto time = id(sntp_time).now();
-            if (time.is_valid()) {
-              char current_time[6];
-              sprintf(current_time, "%02d:%02d", time.hour, time.minute);
-              
-              // Check Home Time (e.g. "06:00:00" -> match "06:00")
-              if (id(ha_home_time).has_state() && id(ha_home_time).state.length() >= 5) {
-                 if (id(ha_home_time).state.substr(0, 5) == std::string(current_time)) {
-                    if (id(presence_mode).state != "home") {
-                       ESP_LOGI("SCHEDULE", "Time %s matches Home Time %s -> Switching to Home Mode", current_time, id(ha_home_time).state.c_str());
-                       id(presence_mode).make_call().set_option("home").perform();
-                    }
-                 }
-              }
+      - script.execute: manage_heating
 
-              // Check Away Time
-              if (id(ha_away_time).has_state() && id(ha_away_time).state.length() >= 5) {
-                 if (id(ha_away_time).state.substr(0, 5) == std::string(current_time)) {
-                    if (id(presence_mode).state != "away") {
-                       ESP_LOGI("SCHEDULE", "Time %s matches Away Time %s -> Switching to Away Mode", current_time, id(ha_away_time).state.c_str());
-                       id(presence_mode).make_call().set_option("away").perform();
-                    }
-                 }
-              }
-            }
-          }
+  # Schedule-based presence mode automation
+  # Checks every minute if we should be in home or away mode based on schedule
+  - interval: 60s
+    then:
+      - if:
+          condition:
+            # Only run if schedule is enabled
+            - switch.is_on: schedule_enabled
+          then:
+            - lambda: |-
+                // Get current time from SNTP time source
+                auto time = id(sntp_time).now();
+                if (!time.is_valid()) {
+                  ESP_LOGW("SCHEDULE", "Time not synced yet, skipping schedule check");
+                  return;
+                }
+
+                // Get schedule times from datetime entities
+                auto home_time = id(schedule_1_home).state_as_esptime();
+                auto away_time = id(schedule_2_away).state_as_esptime();
+
+                // Current time in minutes since midnight
+                int current_minutes = time.hour * 60 + time.minute;
+                int home_minutes = home_time.hour * 60 + home_time.minute;
+                int away_minutes = away_time.hour * 60 + away_time.minute;
+
+                ESP_LOGD("SCHEDULE", "Current: %02d:%02d (%d min), Home: %02d:%02d (%d min), Away: %02d:%02d (%d min)",
+                         time.hour, time.minute, current_minutes,
+                         home_time.hour, home_time.minute, home_minutes,
+                         away_time.hour, away_time.minute, away_minutes);
+
+                // Determine if we should be in home or away mode
+                bool should_be_home = false;
+                if (home_minutes < away_minutes) {
+                  // Normal case: home 06:00 -> away 22:00 (within same day)
+                  should_be_home = (current_minutes >= home_minutes && current_minutes < away_minutes);
+                } else {
+                  // Wraparound case: home 22:00 -> away 08:00 (crosses midnight)
+                  should_be_home = (current_minutes >= home_minutes || current_minutes < away_minutes);
+                }
+
+                // Update presence mode if needed
+                std::string desired_mode = should_be_home ? "home" : "away";
+                std::string current_mode = id(presence_mode).state;
+
+                if (current_mode != desired_mode) {
+                  ESP_LOGI("SCHEDULE", "Updating presence mode: %s -> %s", current_mode.c_str(), desired_mode.c_str());
+                  auto call = id(presence_mode).make_call();
+                  call.set_option(desired_mode);
+                  call.perform();
+                } else {
+                  ESP_LOGD("SCHEDULE", "Presence mode already correct: %s", current_mode.c_str());
+                }
