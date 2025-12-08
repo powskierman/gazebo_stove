@@ -77,9 +77,9 @@ time:
   - platform: sntp
     id: sntp_time
     servers:
-      - 0.ca.pool.ntp.org
-      - 1.ca.pool.ntp.org
-      - 2.ca.pool.ntp.org
+      - time.google.com
+      - time.cloudflare.com
+      - 0.pool.ntp.org
     timezone: America/Edmonton
     on_time_sync:
       then:

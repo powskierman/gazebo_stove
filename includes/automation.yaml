@@ -47,10 +47,11 @@ script:
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
 
-          ESP_LOGD("PRIORITY", "ForceOff=%s, EmergencyHeat=%s, Schedule=%s",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, EmergencyHeat=%s, ScheduleStandby=%s (Mode='%s')",
                    manual_stop ? "true" : "false",
                    manual_run ? "true" : "false",
-                   schedule_standby ? "standby" : "operational");
+                   schedule_standby ? "YES" : "NO",
+                   id(presence_mode).state.c_str());
 
           // ========================================================================
           // Priority 1: Manual Stop (Force Off) - HIGHEST PRIORITY
@@ -244,10 +245,17 @@ interval:
                 int home_minutes = home_time.hour * 60 + home_time.minute;
                 int away_minutes = away_time.hour * 60 + away_time.minute;
 
-                ESP_LOGD("SCHEDULE", "Current: %02d:%02d (%d min), Home: %02d:%02d (%d min), Away: %02d:%02d (%d min)",
+                // CHANGED: Log at INFO level so user can see what's happening
+                ESP_LOGI("SCHEDULE", "Check: Current=%02d:%02d (%d), Home=%02d:%02d (%d), Away=%02d:%02d (%d)",
                          time.hour, time.minute, current_minutes,
                          home_time.hour, home_time.minute, home_minutes,
                          away_time.hour, away_time.minute, away_minutes);
+
+                // Handle edge case: equality
+                if (home_minutes == away_minutes) {
+                   ESP_LOGW("SCHEDULE", "Home and Away times are identical - staying in current mode");
+                   return;
+                }
 
                 // Determine if we should be in home or away mode
                 bool should_be_home = false;
@@ -259,15 +267,35 @@ interval:
                   should_be_home = (current_minutes >= home_minutes || current_minutes < away_minutes);
                 }
 
-                // Update presence mode if needed
+                // Update presence mode if needed (or if Climate Mode is out of sync)
                 std::string desired_mode = should_be_home ? "home" : "away";
                 std::string current_mode = id(presence_mode).state;
+                
+                bool climate_mismatch = false;
+                if (desired_mode == "away") {
+                   // If Away, Climate should be OFF
+                   if (id(gazebo_thermostat).mode != climate::CLIMATE_MODE_OFF) {
+                     climate_mismatch = true;
+                   }
+                } else {
+                   // If Home, Climate should NOT be OFF (should be HEAT)
+                   if (id(gazebo_thermostat).mode == climate::CLIMATE_MODE_OFF) {
+                     climate_mismatch = true;
+                   }
+                }
 
-                if (current_mode != desired_mode) {
-                  ESP_LOGI("SCHEDULE", "Updating presence mode: %s -> %s", current_mode.c_str(), desired_mode.c_str());
+                if (current_mode != desired_mode || climate_mismatch) {
+                  ESP_LOGI("SCHEDULE", "Updating presence mode: %s -> %s (Climate Mismatch: %s)", 
+                           current_mode.c_str(), desired_mode.c_str(), climate_mismatch ? "YES" : "NO");
                   auto call = id(presence_mode).make_call();
                   call.set_option(desired_mode);
                   call.perform();
                 } else {
-                  ESP_LOGD("SCHEDULE", "Presence mode already correct: %s", current_mode.c_str());
+                  // CHANGED: Log at INFO level to confirm it's working but no change needed
+                  ESP_LOGI("SCHEDULE", "Presence mode correct: %s (No change)", current_mode.c_str());
                 }
+          else:
+            - logger.log:
+                level: WARN
+                tag: "SCHEDULE"
+                format: "Schedule check skipped: Schedule is DISABLED"

@@ -99,12 +99,28 @@ select:
       - "home"
       - "away"
     initial_option: "home"
-    restore_value: yes
+    restore_value: true
+    optimistic: true
     set_action:
       then:
         - logger.log:
             format: "Presence mode set to: %s"
             args: ["x.c_str()"]
+        # Sync Thermostat Preset and Mode with Presence Mode
+        - if:
+            condition:
+              lambda: 'return x == "away";'
+            then:
+              # User wants explicit "OFF" in UI
+              - climate.control:
+                  id: gazebo_thermostat
+                  mode: "OFF"
+            else:
+              # Restore Heating in Home mode
+              - climate.control:
+                  id: gazebo_thermostat
+                  mode: "HEAT"
+                  preset: Home
         # Re-evaluate heating when presence changes
         - script.execute: manage_heating
 
