@@ -31,45 +31,42 @@ script:
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
           }
 
-  # Manage heating with priority logic and hysteresis control
-  # CORRECTED Priority Order: Force Off > Emergency Heat > Schedule > Thermostat Algorithm
+  # Manage heating with priority logic for PID Controller
+  # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > PID Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
-  # *** PRIORITY 2: Manual Run (Emergency Heat) - 15 min timer, overrides schedule ***
-  # *** PRIORITY 3: Presence Mode (Schedule) - controls operational vs standby modes ***
-  # *** PRIORITY 4 (LOWEST): Thermostat Algorithm - maintains temperature when operational ***
+  # *** PRIORITY 2: Manual Run (Emergency Heat) - 15 min timer, forces heat ON ***
+  # *** PRIORITY 3: Presence Mode (Schedule) - Away mode disables heating ***
+  # *** PRIORITY 4 (LOWEST): PID Controller - automatic temperature control ***
   - id: manage_heating
     then:
+      # Check priorities and set action flags
       - lambda: |-
-          float current_temp = id(gazebo_temp).state;
-          float desired = id(gazebo_thermostat).target_temperature;
-          float hysteresis = id(heating_hysteresis).state;
           bool schedule_standby = (id(presence_mode).state == "away");
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
+          float pwm_output = id(heater_output_level);
 
-          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, EmergencyHeat=%s, ScheduleStandby=%s (Mode='%s')",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, EmergencyHeat=%s, ScheduleStandby=%s, PID_Output=%.1f%%",
                    manual_stop ? "true" : "false",
                    manual_run ? "true" : "false",
                    schedule_standby ? "YES" : "NO",
-                   id(presence_mode).state.c_str());
+                   pwm_output * 100.0);
 
-          // ========================================================================
+          // Determine action based on priority
+          // Store decision in heating_action global: 0=PID, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+          
           // Priority 1: Manual Stop (Force Off) - HIGHEST PRIORITY
-          // ========================================================================
           if (manual_stop) {
             id(heating_status).publish_state("Forced Off");
-            if (id(relay).state) {
-              id(relay).turn_off();
-              ESP_LOGI("PRIORITY", "Force Off: Relay OFF (Priority 1 - HIGHEST)");
-            }
+            id(heating_action) = 1;
+            ESP_LOGI("PRIORITY", "Force Off active (Priority 1 - HIGHEST)");
             return;
           }
 
-          // ========================================================================
           // Priority 2: Manual Run (Emergency Heat) - 15-minute timer
-          // ========================================================================
           if (manual_run) {
             id(heating_status).publish_state("Emergency Heat");
+            
             if (id(manual_run_timeout) == 0) {
               ESP_LOGW("MANUAL_RUN", "Timeout is 0 but manual_run_active is true - resetting");
               id(manual_run_timeout) = millis();
@@ -82,58 +79,73 @@ script:
               ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling");
               id(manual_run_active) = false;
               id(manual_run_timeout) = 0;
+              // Will check other priorities on next call
+              id(heating_action) = 0;
             } else {
-              if (!id(relay).state) {
-                id(relay).turn_on();
-                ESP_LOGI("PRIORITY", "Emergency Heat: Relay ON (Priority 2, %ld ms remaining)", timeout_ms - elapsed);
-              }
+              id(heating_action) = 2;
+              ESP_LOGI("PRIORITY", "Emergency Heat: %ld min remaining (Priority 2)", 
+                       (timeout_ms - elapsed) / 60000);
               return;
             }
           }
 
-          // ========================================================================
           // Priority 3: Presence Mode (Schedule) - Home/Away based control
-          // ========================================================================
           if (schedule_standby) {
             id(heating_status).publish_state("Schedule Standby");
-            if (id(relay).state) {
-              id(relay).turn_off();
-              ESP_LOGI("PRIORITY", "Schedule: Standby mode (Priority 3) - Relay OFF");
-            }
+            id(heating_action) = 3;
+            ESP_LOGI("PRIORITY", "Schedule: Away mode - Standby (Priority 3)");
             return;
           }
 
-          // ========================================================================
-          // Priority 4: Thermostat Algorithm - LOWEST PRIORITY
-          // ========================================================================
-          float lower_threshold = desired - hysteresis;
-          float upper_threshold = desired + hysteresis;
-
-          ESP_LOGI("HEATING", "Current: %.1f°C, Target: %.1f°C, Hysteresis: %.1f°C, Thresholds: [%.1f-%.1f]",
-                   current_temp, desired, hysteresis, lower_threshold, upper_threshold);
-
-          if (current_temp <= lower_threshold) {
+          // Priority 4: PID Controller - Let PID manage heating automatically
+          id(heating_action) = 0;
+          
+          // Update status based on PID output
+          if (pwm_output > 0.5) {
             id(heating_status).publish_state("Heating");
-            if (!id(relay).state) {
-              id(relay).turn_on();
-              ESP_LOGI("HEATING", "Start heating: %.1f°C <= %.1f°C (Priority 4)", current_temp, lower_threshold);
-            }
-          } else if (current_temp >= upper_threshold) {
-            id(heating_status).publish_state("Idle");
-            if (id(relay).state) {
-              id(relay).turn_off();
-              ESP_LOGI("HEATING", "Stop heating: %.1f°C >= %.1f°C (Priority 4)", current_temp, upper_threshold);
-            }
+          } else if (pwm_output > 0) {
+            id(heating_status).publish_state("Low Heat");
           } else {
-            // If we are in the deadband, the state is either "Heating" or "Idle" depending on the relay state
-            if (id(relay).state) {
-              id(heating_status).publish_state("Heating");
-            } else {
-              id(heating_status).publish_state("Idle");
-            }
-            ESP_LOGD("HEATING", "In deadband: (%.1f, %.1f), Relay=%s (no change)",
-                     lower_threshold, upper_threshold, id(relay).state ? "ON" : "OFF");
+            id(heating_status).publish_state("Idle");
           }
+          
+          ESP_LOGI("PID", "Current: %.1f°C, Target: %.1f°C, Output: %.0f%%",
+                   id(gazebo_temp).state,
+                   id(gazebo_thermostat).target_temperature,
+                   pwm_output * 100.0);
+      
+      # Execute action based on heating_action value
+      - if:
+          condition:
+            lambda: 'return id(heating_action) == 1;'  # Force Off
+          then:
+            - output.set_level:
+                id: heater_pwm
+                level: 0.0
+            - lambda: 'id(heater_output_level) = 0.0;'
+      - if:
+          condition:
+            lambda: 'return id(heating_action) == 2;'  # Emergency Heat
+          then:
+            - output.set_level:
+                id: heater_pwm
+                level: 1.0
+            - lambda: 'id(heater_output_level) = 1.0;'
+      - if:
+          condition:
+            lambda: 'return id(heating_action) == 3;'  # Standby
+          then:
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "OFF"
+      - if:
+          condition:
+            lambda: 'return id(heating_action) == 0 && id(gazebo_thermostat).mode == climate::CLIMATE_MODE_OFF;'
+          then:
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "HEAT"
+            - logger.log: "PID: Restoring HEAT mode (Priority 4)"
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
   - id: update_relay_state

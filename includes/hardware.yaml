@@ -29,26 +29,36 @@ light:
     id: status_light
 
 # ============================================================================
-# RELAY CONTROL (GPIO12) - Propane Stove Heating Element
+# RELAY STATUS (GPIO12 controlled by PID via slow_pwm in climate.yaml)
 # ============================================================================
-# Note: Template switches (Manual Run, Manual Stop) are defined in entities.yaml
-# Both are combined into a single 'switch:' section in the final config
+# Note: The physical relay is now controlled by the slow_pwm output in climate.yaml
+# This template switch provides UI visibility and allows manual overrides
 
 switch:
-  # GPIO Relay for heating element
-  - platform: gpio
+  # Relay status display - reflects slow_pwm output state
+  # Note: Direct control is handled by PID; this is for monitoring/override
+  - platform: template
     name: "Stove Relay"
     id: relay
-    pin: GPIO12
-    restore_mode: ALWAYS_OFF
     icon: "mdi:fire"
-    on_turn_on:
+    lambda: |-
+      // Read state from the heater_output_level global
+      return id(heater_output_level) > 0.5;
+    turn_on_action:
       then:
-        - logger.log: "Relay turned ON - Stove heating"
+        - logger.log: "Relay forced ON via UI"
+        - lambda: 'id(heater_output_level) = 1.0;'
+        - output.set_level:
+            id: heater_pwm
+            level: 1.0
         - light.turn_on: status_light
-    on_turn_off:
+    turn_off_action:
       then:
-        - logger.log: "Relay turned OFF - Stove idle"
+        - logger.log: "Relay forced OFF via UI"
+        - lambda: 'id(heater_output_level) = 0.0;'
+        - output.set_level:
+            id: heater_pwm
+            level: 0.0
         - light.turn_off: status_light
 
   # Manual Run Override (Emergency heating for 15 minutes)
@@ -111,9 +121,13 @@ switch:
               id(manual_run_timeout) = 0;
               id(manual_run).publish_state(false);
             }
-            id(relay).turn_off();
             ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
             id(manual_stop).publish_state(true);
+        # Force heater off via PWM output
+        - output.set_level:
+            id: heater_pwm
+            level: 0.0
+        - light.turn_off: status_light
         - script.execute: update_relay_state
     turn_off_action:
       then:

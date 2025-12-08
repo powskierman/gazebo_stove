@@ -1,7 +1,7 @@
 # ============================================================================
 # BUTTONS - Manual Controls & Actions
 # ============================================================================
-# Device control buttons for restart and safe shutdown
+# Device control buttons for restart, shutdown, and PID tuning
 
 button:
   # Manual restart button
@@ -17,7 +17,24 @@ button:
     entity_category: "diagnostic"
     on_press:
       then:
-        - switch.turn_off: relay
-        - logger.log: "Safe shutdown: Relay deactivated"
+        - output.set_level:
+            id: heater_pwm
+            level: 0.0
+        - logger.log: "Safe shutdown: Heater deactivated"
         - delay: 1s
         - button.press: restart_button
+
+  # PID Autotune button
+  - platform: template
+    name: "PID Autotune"
+    id: pid_autotune_button
+    entity_category: "config"
+    on_press:
+      then:
+        - logger.log: "Starting PID autotune - setting AUTO mode first..."
+        - climate.control:
+            id: gazebo_thermostat
+            mode: "HEAT_COOL"
+        - delay: 500ms
+        - logger.log: "PID autotune starting - this may take 1-2 hours..."
+        - climate.pid.autotune: gazebo_thermostat
