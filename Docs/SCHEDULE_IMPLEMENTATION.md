@@ -663,4 +663,18 @@ The schedule implementation provides a robust, autonomous time-based control sys
 ✅ **Maintainability**: All heating logic centralized in ESPHome configuration
 ✅ **Safety**: Manual overrides still take priority via established priority system
 
-This implementation completes the migration of all critical heating control logic to the edge device, ensuring maximum reliability and autonomy.
+
+## UI Synchronization & Explicit "Off" Mode (Added 2025-12-08)
+
+To resolve user confusion where "Away" mode was active (relay off) but the thermostat UI still showed "Heating", we added synchronization logic:
+
+1.  **Strict "Off" Mode**: When the schedule switches to "Away" (or user manually selects it), the Thermostat entity is forced to `OFF` mode.
+    -   UI shows "Off" instead of "Heating"
+    -   Orange heating arc disappears
+    -   User gets clear visual confirmation
+
+2.  **Auto-Sync**: The system checks every minute (and on boot) to ensure the UI matches the internal state.
+    -   If Schedule says "Away" but UI says "Heating", it forces UI to "Off".
+    -   This fixes race conditions on boot where state might be restored out of sync.
+
+This ensures the "Split Brain" problem (Logic says OFF, UI says ON) is permanently resolved.

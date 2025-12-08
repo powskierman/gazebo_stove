@@ -37,7 +37,7 @@ light:
 switch:
   # GPIO Relay for heating element
   - platform: gpio
-    name: "Propane Stove Relay"
+    name: "Stove Relay"
     id: relay
     pin: GPIO12
     restore_mode: ALWAYS_OFF

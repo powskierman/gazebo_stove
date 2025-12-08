@@ -14,6 +14,7 @@ button:
   - platform: template
     name: "Safe Shutdown"
     id: shutdown_button
+    entity_category: "diagnostic"
     on_press:
       then:
         - switch.turn_off: relay

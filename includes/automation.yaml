@@ -41,7 +41,7 @@ script:
     then:
       - lambda: |-
           float current_temp = id(gazebo_temp).state;
-          float desired = id(desired_temp).state;
+          float desired = id(gazebo_thermostat).target_temperature;
           float hysteresis = id(heating_hysteresis).state;
           bool schedule_standby = (id(presence_mode).state == "away");
           bool manual_stop = id(manual_stop_active);
@@ -109,11 +109,8 @@ script:
           float lower_threshold = desired - hysteresis;
           float upper_threshold = desired + hysteresis;
 
-          ESP_LOGD("HEATING", "Current: %.1f°C, Desired: %.1f°C, Hysteresis: %.1f°C",
-                   current_temp, desired, hysteresis);
-          ESP_LOGD("HEATING", "Asymmetric Thresholds: Lower=%.1f, Upper=%.1f, Relay=%s",
-                   lower_threshold, upper_threshold,
-                   id(relay).state ? "ON" : "OFF");
+          ESP_LOGI("HEATING", "Current: %.1f°C, Target: %.1f°C, Hysteresis: %.1f°C, Thresholds: [%.1f-%.1f]",
+                   current_temp, desired, hysteresis, lower_threshold, upper_threshold);
 
           if (current_temp <= lower_threshold) {
             id(heating_status).publish_state("Heating");

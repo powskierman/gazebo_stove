@@ -46,9 +46,12 @@ climate:
     min_idle_time: 60s
 
     # Hysteresis (deadband) settings
-    # Note: Updated API field names
-    heat_deadband: 0.5  # Temperature below setpoint where heating turns on
-    heat_overrun: 0.5   # Temperature above setpoint where heating turns off
+    # Note: Set to minimum (1°C) so thermostat triggers heat_action frequently.
+    # The actual hysteresis is controlled by the heating_hysteresis slider
+    # and applied in manage_heating script. The thermostat's "action" display
+    # may not match the actual relay state when slider > 1°C.
+    heat_deadband: 1.0  # Minimum - actual control via manage_heating
+    heat_overrun: 1.0   # Minimum - actual control via manage_heating
 
     # ========================================================================
     # HEATING ACTION

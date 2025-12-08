@@ -1,6 +1,11 @@
 # GazeboStove - ESPHome Propane Stove Heating Control
 
-**Status**: ✅ Production Ready | **Updated**: November 16, 2025
+**Status**: ✅ Production Ready | **Updated**: December 8, 2025
+
+**Recent Changes**:
+- **UI Sync Fixed**: "Away" mode now forces the Thermostat UI to "OFF" (Preventing "Heating" false positive).
+- **Schedule Logic**: Improved boot synchronization to ensure Schedule and Thermostat never get out of sync.
+- **Reliability**: Upgraded SNTP servers to Google/Cloudflare for better time accuracy.
 
 A comprehensive ESPHome-based heating control system for a propane stove with independent operation, event-driven priority management, and full Home Assistant integration.
 
