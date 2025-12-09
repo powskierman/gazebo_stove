@@ -1,70 +1,73 @@
 # ============================================================================
-# CLIMATE (THERMOSTAT) COMPONENT
+# CLIMATE (PID THERMOSTAT) COMPONENT
 # ============================================================================
-# ESPHome thermostat component for Home Assistant integration
-# This component provides the climate entity that Home Assistant expects
-# It works in conjunction with the manage_heating script which implements
-# the priority-based heating control
+# ESPHome PID climate component for propane stove heating control
+# All control logic runs on ESP32 - works even if Home Assistant is unavailable
 
+# ============================================================================
+# SLOW PWM OUTPUT - Converts PID 0-100% to relay ON/OFF cycles
+# ============================================================================
+output:
+  - platform: slow_pwm
+    id: heater_pwm
+    pin: GPIO12
+    period: 120s  # 2-minute cycle period for propane stove
+    turn_on_action:
+      then:
+        - lambda: 'id(heater_output_level) = 1.0;'
+        - light.turn_on: status_light
+    turn_off_action:
+      then:
+        - lambda: 'id(heater_output_level) = 0.0;'
+        - light.turn_off: status_light
+
+  # Dummy cool output for PID autotuning (does nothing - we only heat)
+  - platform: template
+    id: dummy_cool
+    type: float
+    write_action:
+      - lambda: |-
+          // Dummy output - cooling not available for propane stove
+          ESP_LOGD("COOL", "Cool output requested (ignored): %.1f%%", state * 100);
+
+# ============================================================================
+# PID CLIMATE CONTROLLER
+# ============================================================================
 climate:
-  - platform: thermostat
-    name: "Propane Stove Thermostat"
+  - platform: pid
     id: gazebo_thermostat
-    icon: "mdi:fire"
-
-    # ========================================================================
-    # SENSOR CONFIGURATION
-    # ========================================================================
-    # The temperature sensor this thermostat monitors
+    name: "Gazebo Stove"
     sensor: gazebo_temp
+    default_target_temperature: 20
+    heat_output: heater_pwm
+    cool_output: dummy_cool  # Dummy for autotuning - enables AUTO mode
+    
+    # PID Control Parameters
+    # Conservative values for propane stove heating
+    # Tune later with autotune when actual heater is connected
+    control_parameters:
+      kp: 5.0      # Proportional - moderate response to error
+      ki: 0.003    # Integral - slow accumulation to fix steady-state error
+      kd: 100.0    # Derivative - dampen oscillation, prevent overshoot
+      output_averaging_samples: 5  # Smooth output
+    
+    # Deadband for stability - prevents oscillation near setpoint
+    deadband_parameters:
+      threshold_high: 1.0°C   # Don't reduce heat until 1°C above target
+      threshold_low: -1.0°C   # Don't increase heat until 1°C below target
+      kp_multiplier: 0.0      # No proportional response in deadband
+      ki_multiplier: 0.05     # Slow integral accumulation (5%)
+      kd_multiplier: 0.0      # No derivative in deadband
+      deadband_output_averaging_samples: 15  # Extra smoothing in deadband
+    
+    # Visual settings
+    visual:
+      min_temperature: 5
+      max_temperature: 35
+      temperature_step: 0.5
 
-    # ========================================================================
-    # PRESET MODES - Temperature Ranges
-    # ========================================================================
-    # ESPHome 2025.10.3 requires presets for all temperature setpoints
-    # First preset becomes the default on boot
-    preset:
-      - name: Home
-        default_target_temperature_low: 20
-      - name: Comfort
-        default_target_temperature_low: 22
-      - name: Away
-        default_target_temperature_low: 15
-      - name: Sleep
-        default_target_temperature_low: 16
-
-    # ========================================================================
-    # HEATING CONTROL CONFIGURATION
-    # ========================================================================
-    # Minimum time the heating must stay ON when activated
-    min_heating_run_time: 60s
-
-    # Minimum time the heating must stay OFF before turning on again
-    min_heating_off_time: 60s
-
-    # Minimum time the system must be idle before considering to heat again
-    min_idle_time: 60s
-
-    # Hysteresis (deadband) settings
-    # Note: Set to minimum (1°C) so thermostat triggers heat_action frequently.
-    # The actual hysteresis is controlled by the heating_hysteresis slider
-    # and applied in manage_heating script. The thermostat's "action" display
-    # may not match the actual relay state when slider > 1°C.
-    heat_deadband: 1.0  # Minimum - actual control via manage_heating
-    heat_overrun: 1.0   # Minimum - actual control via manage_heating
-
-    # ========================================================================
-    # HEATING ACTION
-    # ========================================================================
-    # NOTE: These actions call the manage_heating script, which implements
-    # the priority-based control logic (Force Off > Emergency Heat > Schedule > Thermostat)
-    # The manage_heating script reads from this climate component's state
-    # and applies priority-based control before actually toggling the relay.
-
-    heat_action:
-      # When climate thinks heating should turn ON, trigger heating evaluation
-      - script.execute: manage_heating
-      # Update Nextion Page 3 with setpoint
+    # Update Nextion display when target temperature changes
+    on_control:
       - lambda: |-
           if (id(gazebo_nextion).is_failed() == false) {
             float target = id(gazebo_thermostat).target_temperature;
@@ -78,46 +81,24 @@ climate:
             ESP_LOGD("NEXTION_DEBUG", "Updated n0=%d, Slider0=%d", (int)target, slider_val);
           }
 
-    idle_action:
-      # When climate thinks heating should turn OFF, trigger heating evaluation
-      - script.execute: manage_heating
-      # Update Nextion Page 3 with setpoint
-      - lambda: |-
-          if (id(gazebo_nextion).is_failed() == false) {
-            float target = id(gazebo_thermostat).target_temperature;
-            // n0: desired temperature (left side)
-            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)target);
-            // Slider0: map 15-30°C to 0-100
-            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
-            if (slider_val < 0) slider_val = 0;
-            if (slider_val > 100) slider_val = 100;
-            id(gazebo_nextion).send_command_printf("Slider0.val=%d", slider_val);
-            ESP_LOGD("NEXTION_DEBUG", "Updated n0=%d, Slider0=%d", (int)target, slider_val);
-          }
-
-    # ========================================================================
-    # IMPLEMENTATION NOTES
-    # ========================================================================
-    # The thermostat climate component provides:
-    # 1. Climate entity for Home Assistant dashboard
-    # 2. Target temperature setpoint control
-    # 3. Automatic hysteresis-based heating decisions
-    # 4. Minimum run/off time enforcement (prevents rapid cycling)
-    # 5. Integration with Home Assistant climate automations
-    #
-    # The manage_heating script provides:
-    # 1. Priority-based control hierarchy:
-    #    - Priority 1: Force Off (Manual Stop) - absolute shutdown
-    #    - Priority 2: Emergency Heat (Manual Run) - 15-minute override
-    #    - Priority 3: Schedule (Presence Mode) - home/away control
-    #    - Priority 4: Thermostat Algorithm - normal operation
-    # 2. Override logic that respects user safety priorities
-    # 3. Detailed logging for debugging and monitoring
-    #
-    # Combined behavior:
-    # When climate component decides heating should change state, it calls
-    # manage_heating script. The script then applies all priority logic and
-    # actuator state to decide whether to actually control the relay.
-    #
-    # This ensures safety (Force Off always works) while providing automatic
-    # temperature control through the climate component's algorithms.
+# ============================================================================
+# IMPLEMENTATION NOTES
+# ============================================================================
+# The PID climate controller provides:
+# 1. Proportional-Integral-Derivative temperature control
+# 2. Slow PWM output for binary relay (2-minute cycle)
+# 3. Deadband to prevent rapid cycling near setpoint
+# 4. Smooth output averaging for stable operation
+#
+# Priority overrides (Force Off, Emergency Heat, Schedule) are handled
+# by the manage_heating script in automation.yaml which can override
+# the PID controller when needed.
+#
+# AUTOTUNE PROCESS:
+# 1. Use the "PID Autotune" button to start autotuning
+# 2. Wait for oscillation cycles (can take 1-2 hours)
+# 3. Copy kp, ki, kd values from logs to this file
+# 4. Re-upload firmware with tuned values
+#
+# Note: The heater_output_level global is updated by slow_pwm on/off actions
+# to track the current state for the priority override system.

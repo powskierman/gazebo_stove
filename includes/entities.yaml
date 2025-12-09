@@ -42,25 +42,6 @@ number:
             format: "Temperature offset set to %.1f°C"
             args: ["x"]
 
-  # Heating Hysteresis (deadband for stove control)
-  - platform: template
-    name: "Heating Hysteresis"
-    id: heating_hysteresis
-    min_value: 1
-    max_value: 5
-    step: 0.5
-    unit_of_measurement: "°C"
-    icon: "mdi:fire"
-    entity_category: "diagnostic"
-    restore_value: yes
-    optimistic: true
-    initial_value: 2
-    set_action:
-      then:
-        - logger.log:
-            format: "Heating hysteresis set to %.1f°C"
-            args: ["x"]
-
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
 # ============================================================================
@@ -214,3 +195,17 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+
+  # Heater output level tracker (0.0 to 1.0)
+  # Used to track slow_pwm output since it doesn't have get_state()
+  - id: heater_output_level
+    type: float
+    restore_value: no
+    initial_value: '0.0'
+
+  # Heating action flag for priority system
+  # 0=PID, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+  - id: heating_action
+    type: int
+    restore_value: no
+    initial_value: '0'
