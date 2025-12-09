@@ -70,10 +70,11 @@ sensor:
         - lambda: |-
             if (id(gazebo_nextion).is_failed() == false) {
               ESP_LOGD("NEXTION_DEBUG", "Sending temp %.1f to display", x);
-              // Update 'temp' component on Page 'zero'
+              // Page 0: Update 'temp' component
               id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
-              // Also try local update in case page is active
               id(gazebo_nextion).send_command_printf("temp.val=%d", (int)x);
+              // Page 3: Update 'n1' (actual temperature - right side)
+              id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
             }
 
   # WiFi Signal Strength

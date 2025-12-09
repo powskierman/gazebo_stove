@@ -203,4 +203,14 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Nextion Slider0 value tracker (0-100 maps to 15-30°C)
+  - id: nextion_slider_value
+    type: float
+    restore_value: no
+    initial_value: '33.3'  # Default to 20°C = (20-15)/15*100 = 33.3
 
+  # Slider touch release flag
+  - id: slider_touched
+    type: bool
+    restore_value: no
+    initial_value: 'false'

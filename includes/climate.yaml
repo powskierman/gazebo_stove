@@ -64,10 +64,36 @@ climate:
     heat_action:
       # When climate thinks heating should turn ON, trigger heating evaluation
       - script.execute: manage_heating
+      # Update Nextion Page 3 with setpoint
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed() == false) {
+            float target = id(gazebo_thermostat).target_temperature;
+            // n0: desired temperature (left side)
+            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)target);
+            // Slider0: map 15-30°C to 0-100
+            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
+            if (slider_val < 0) slider_val = 0;
+            if (slider_val > 100) slider_val = 100;
+            id(gazebo_nextion).send_command_printf("Slider0.val=%d", slider_val);
+            ESP_LOGD("NEXTION_DEBUG", "Updated n0=%d, Slider0=%d", (int)target, slider_val);
+          }
 
     idle_action:
       # When climate thinks heating should turn OFF, trigger heating evaluation
       - script.execute: manage_heating
+      # Update Nextion Page 3 with setpoint
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed() == false) {
+            float target = id(gazebo_thermostat).target_temperature;
+            // n0: desired temperature (left side)
+            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)target);
+            // Slider0: map 15-30°C to 0-100
+            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
+            if (slider_val < 0) slider_val = 0;
+            if (slider_val > 100) slider_val = 100;
+            id(gazebo_nextion).send_command_printf("Slider0.val=%d", slider_val);
+            ESP_LOGD("NEXTION_DEBUG", "Updated n0=%d, Slider0=%d", (int)target, slider_val);
+          }
 
     # ========================================================================
     # IMPLEMENTATION NOTES

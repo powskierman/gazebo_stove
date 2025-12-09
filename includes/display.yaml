@@ -13,8 +13,38 @@ uart:
     rx_pin: GPIO16
     baud_rate: 115200
     debug:
-      direction: BOTH
+      direction: RX  # Only log received data
       dummy_receiver: false
+      after:
+        bytes: 5  # Minimum packet size for 0x91 sensor data
+      sequence:
+        - lambda: |-
+            // Log the raw data
+            ESP_LOGD("NEXTION_UART", "RX: %s (%d bytes)", format_hex_pretty(bytes).c_str(), bytes.size());
+            
+            // Check for Nextion Custom Sensor Protocol (0x91)
+            // Format: 0x91 + 4 bytes little-endian integer
+            if (bytes.size() >= 5 && bytes[0] == 0x91) {
+              // Extract 32-bit little-endian value
+              uint32_t slider_val = bytes[1] | (bytes[2] << 8) | (bytes[3] << 16) | (bytes[4] << 24);
+              
+              if (slider_val <= 100) {
+                // Convert slider value (0-100) to temperature (15-30°C)
+                float desired_temp = 15.0f + ((float)slider_val / 100.0f) * 15.0f;
+                ESP_LOGI("NEXTION_SLIDER", "Slider: %d -> Temperature: %.1f°C", slider_val, desired_temp);
+                
+                // Update global for tracking
+                id(nextion_slider_value) = (float)slider_val;
+                
+                // Update thermostat target temperature
+                auto call = id(gazebo_thermostat).make_call();
+                call.set_target_temperature(desired_temp);
+                call.perform();
+                
+                // Update n0 display (desired temp on left)
+                id(gazebo_nextion).send_command_printf("n0.val=%d", (int)desired_temp);
+              }
+            }
 
 # ============================================================================
 # NEXTION DISPLAY COMPONENT
@@ -24,6 +54,35 @@ display:
   - platform: nextion
     uart_id: uart_nextion
     id: gazebo_nextion
+    on_touch:
+      then:
+        - lambda: |-
+            ESP_LOGI("NEXTION_TOUCH", "Touch: page=%d, component=%d, pressed=%d", page_id, component_id, touch_event);
+            // When slider (component_id=4) is released on Page 3, capture touch
+            if (page_id == 3 && component_id == 4 && touch_event == false) {
+              id(slider_touched) = true;
+              ESP_LOGI("NEXTION_SLIDER", "Slider touch released on Page 3");
+            }
+    on_setup:
+      then:
+        - logger.log: "Nextion display connected"
     lambda: |-
       // Placeholder lambda - display updates via send_command_printf
       ESP_LOGD("NEXTION", "Display lambda executed");
+
+# ============================================================================
+# NEXTION SLIDER INPUT - Process slider touch events
+# ============================================================================
+# When slider is touched, try to read the value from UART buffer
+# The Nextion sends "prints Slider0.val,0" on touch release
+
+interval:
+  - interval: 300ms
+    then:
+      - if:
+          condition:
+            lambda: 'return id(slider_touched);'
+          then:
+            - lambda: 'id(slider_touched) = false;'
+            - delay: 100ms
+            - script.execute: read_nextion_slider

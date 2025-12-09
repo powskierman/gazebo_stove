@@ -4,6 +4,33 @@
 # Scripts for heating control, display initialization, and system management
 
 script:
+  # Read Nextion Slider0 value and update thermostat
+  # This script is called when touch is released on Page 3
+  - id: read_nextion_slider
+    then:
+      - delay: 100ms  # Small delay for Nextion to process
+      - lambda: |-
+          // Send a command to request Slider0 value
+          // The response will come via UART and be logged
+          // For now, we use the touch event component_id to estimate the value
+          // Full bi-directional communication requires Nextion to send data proactively
+          
+          // Get the stored slider value from our global
+          int slider_val = (int)id(nextion_slider_value);
+          if (slider_val >= 0 && slider_val <= 100) {
+            // Convert slider value (0-100) to temperature (15-30°C)
+            float desired_temp = 15.0 + ((float)slider_val / 100.0) * 15.0;
+            ESP_LOGI("NEXTION_SLIDER", "Slider value: %d -> Temperature: %.1f°C", slider_val, desired_temp);
+            
+            // Update thermostat target temperature
+            auto call = id(gazebo_thermostat).make_call();
+            call.set_target_temperature(desired_temp);
+            call.perform();
+            
+            // Update n0 display immediately (desired temp on left)
+            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)desired_temp);
+          }
+
   # Initialize Nextion display on boot
   - id: init_nextion
     then:
@@ -15,7 +42,9 @@ script:
             id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
             ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
 
-            // Update Page 0 with initial values
+            // ============================================================
+            // Page 0: Update with initial values
+            // ============================================================
             // Temperature
             id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
             id(gazebo_nextion).send_command_printf("temp.val=%d", (int)id(gazebo_temp).state);
@@ -26,7 +55,21 @@ script:
               id(gazebo_nextion).send_command_printf("precip.val=%d", (int)id(gazebo_humidity).state);
             }
 
-            ESP_LOGI("NEXTION_INIT", "Display initialization complete");
+            // ============================================================
+            // Page 3: Initialize temperature controls
+            // ============================================================
+            float target = id(gazebo_thermostat).target_temperature;
+            // n0: desired temperature (left side)
+            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)target);
+            // n1: actual temperature (right side)
+            id(gazebo_nextion).send_command_printf("n1.val=%d", (int)id(gazebo_temp).state);
+            // Slider0: map 15-30°C to 0-100
+            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
+            if (slider_val < 0) slider_val = 0;
+            if (slider_val > 100) slider_val = 100;
+            id(gazebo_nextion).send_command_printf("Slider0.val=%d", slider_val);
+
+            ESP_LOGI("NEXTION_INIT", "Display initialization complete (target=%.1f, slider=%d)", target, slider_val);
           } else {
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
           }
