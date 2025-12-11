@@ -74,6 +74,11 @@ script:
           } else {
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
           }
+      # Update weather displays immediately on boot
+      - delay: 2s  # Brief delay for HA sensors to connect
+      - script.execute: update_nextion_hourly
+      - script.execute: update_nextion_daily
+      - logger.log: "Weather data sent to Pages 1 and 2"
 
   # Manage heating with priority logic for PID Controller
   # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > PID Thermostat
