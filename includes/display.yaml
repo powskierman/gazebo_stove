@@ -42,7 +42,7 @@ uart:
                 call.perform();
                 
                 // Update n0 display (desired temp on left)
-                id(gazebo_nextion).send_command_printf("n0.val=%d", (int)desired_temp);
+                id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)desired_temp);
               }
             }
 

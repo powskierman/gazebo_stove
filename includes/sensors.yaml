@@ -69,12 +69,14 @@ sensor:
         # Update Nextion display
         - lambda: |-
             if (id(gazebo_nextion).is_failed() == false) {
-              ESP_LOGD("NEXTION_DEBUG", "Sending temp %.1f to display", x);
+              ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);
               // Page 0: Update 'temp' component
               id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
-              id(gazebo_nextion).send_command_printf("temp.val=%d", (int)x);
+              // id(gazebo_nextion).send_command_printf("temp.val=%d", (int)x); // 'temp' might duplicate 'zero.temp', using specific page
               // Page 3: Update 'n1' (actual temperature - right side)
-              id(gazebo_nextion).send_command_printf("n1.val=%d", (int)x);
+              id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)x);
+            } else {
+              ESP_LOGW("NEXTION", "Display is_failed=true, skipping update");
             }
 
   # WiFi Signal Strength
@@ -97,6 +99,4 @@ sensor:
               ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
               // Update 'precip' component on Page 'zero'
               id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
-              // Also try local update
-              id(gazebo_nextion).send_command_printf("precip.val=%d", (int)x);
             }

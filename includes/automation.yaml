@@ -28,12 +28,13 @@ script:
             call.perform();
             
             // Update n0 display immediately (desired temp on left)
-            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)desired_temp);
+            id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)desired_temp);
           }
 
   # Initialize Nextion display on boot
   - id: init_nextion
     then:
+      - delay: 30s  # Wait for ESP32 and Nextion to settle
       - logger.log: "Initializing Nextion display..."
       - lambda: |-
           if (id(gazebo_nextion).is_failed() == false) {
@@ -47,7 +48,6 @@ script:
             // ============================================================
             // Temperature
             id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
-            id(gazebo_nextion).send_command_printf("temp.val=%d", (int)id(gazebo_temp).state);
             
             // Humidity/Precip
             if (!isnan(id(gazebo_humidity).state)) {

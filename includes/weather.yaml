@@ -1,0 +1,490 @@
+# ============================================================================
+# WEATHER DATA INTEGRATION (Open-Meteo via Home Assistant)
+# ============================================================================
+# Imports weather forecast data from Home Assistant's Open-Meteo integration
+# and displays it on Nextion Pages 1 (hourly) and 2 (daily)
+
+# ============================================================================
+# HOME ASSISTANT SENSOR IMPORTS - Hourly Forecast (Page 1)
+# ============================================================================
+
+sensor:
+  # Hour 0 (Current hour)
+  - platform: homeassistant
+    id: ha_hour_0_feels_like
+    entity_id: sensor.gazebo_hour_0_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_0_precipitation
+    entity_id: sensor.gazebo_hour_0_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_0_weather_code
+    entity_id: sensor.gazebo_hour_0_weather_code
+    internal: true
+
+  # Hour 1
+  - platform: homeassistant
+    id: ha_hour_1_feels_like
+    entity_id: sensor.gazebo_hour_1_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_1_precipitation
+    entity_id: sensor.gazebo_hour_1_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_1_weather_code
+    entity_id: sensor.gazebo_hour_1_weather_code
+    internal: true
+
+  # Hour 2
+  - platform: homeassistant
+    id: ha_hour_2_feels_like
+    entity_id: sensor.gazebo_hour_2_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_2_precipitation
+    entity_id: sensor.gazebo_hour_2_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_2_weather_code
+    entity_id: sensor.gazebo_hour_2_weather_code
+    internal: true
+
+  # Hour 3
+  - platform: homeassistant
+    id: ha_hour_3_feels_like
+    entity_id: sensor.gazebo_hour_3_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_3_precipitation
+    entity_id: sensor.gazebo_hour_3_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_3_weather_code
+    entity_id: sensor.gazebo_hour_3_weather_code
+    internal: true
+
+  # Hour 4
+  - platform: homeassistant
+    id: ha_hour_4_feels_like
+    entity_id: sensor.gazebo_hour_4_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_4_precipitation
+    entity_id: sensor.gazebo_hour_4_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_4_weather_code
+    entity_id: sensor.gazebo_hour_4_weather_code
+    internal: true
+
+  # Hour 5
+  - platform: homeassistant
+    id: ha_hour_5_feels_like
+    entity_id: sensor.gazebo_hour_5_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_5_precipitation
+    entity_id: sensor.gazebo_hour_5_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_5_weather_code
+    entity_id: sensor.gazebo_hour_5_weather_code
+    internal: true
+
+  # Hour 6
+  - platform: homeassistant
+    id: ha_hour_6_feels_like
+    entity_id: sensor.gazebo_hour_6_feels_like
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_6_precipitation
+    entity_id: sensor.gazebo_hour_6_precipitation
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_hour_6_weather_code
+    entity_id: sensor.gazebo_hour_6_weather_code
+    internal: true
+
+  # ============================================================================
+  # HOME ASSISTANT SENSOR IMPORTS - Daily Forecast (Page 2)
+  # ============================================================================
+
+  # Day 0 (Today)
+  - platform: homeassistant
+    id: ha_day_0_temp_max
+    entity_id: sensor.gazebo_day_0_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_0_precipitation
+    entity_id: sensor.gazebo_day_0_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_0_weather_code
+    entity_id: sensor.gazebo_day_0_weather_code
+    internal: true
+
+  # Day 1
+  - platform: homeassistant
+    id: ha_day_1_temp_max
+    entity_id: sensor.gazebo_day_1_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_1_precipitation
+    entity_id: sensor.gazebo_day_1_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_1_weather_code
+    entity_id: sensor.gazebo_day_1_weather_code
+    internal: true
+
+  # Day 2
+  - platform: homeassistant
+    id: ha_day_2_temp_max
+    entity_id: sensor.gazebo_day_2_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_2_precipitation
+    entity_id: sensor.gazebo_day_2_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_2_weather_code
+    entity_id: sensor.gazebo_day_2_weather_code
+    internal: true
+
+  # Day 3
+  - platform: homeassistant
+    id: ha_day_3_temp_max
+    entity_id: sensor.gazebo_day_3_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_3_precipitation
+    entity_id: sensor.gazebo_day_3_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_3_weather_code
+    entity_id: sensor.gazebo_day_3_weather_code
+    internal: true
+
+  # Day 4
+  - platform: homeassistant
+    id: ha_day_4_temp_max
+    entity_id: sensor.gazebo_day_4_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_4_precipitation
+    entity_id: sensor.gazebo_day_4_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_4_weather_code
+    entity_id: sensor.gazebo_day_4_weather_code
+    internal: true
+
+  # Day 5
+  - platform: homeassistant
+    id: ha_day_5_temp_max
+    entity_id: sensor.gazebo_day_5_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_5_precipitation
+    entity_id: sensor.gazebo_day_5_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_5_weather_code
+    entity_id: sensor.gazebo_day_5_weather_code
+    internal: true
+
+  # Day 6
+  - platform: homeassistant
+    id: ha_day_6_temp_max
+    entity_id: sensor.gazebo_day_6_temperature_max
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_6_precipitation
+    entity_id: sensor.gazebo_day_6_precipitation_probability
+    internal: true
+    
+  - platform: homeassistant
+    id: ha_day_6_weather_code
+    entity_id: sensor.gazebo_day_6_weather_code
+    internal: true
+
+# ============================================================================
+# WEATHER UPDATE SCRIPTS
+# ============================================================================
+
+script:
+  # Update Page 1 (Hourly Forecast - Ressentie)
+  - id: update_nextion_hourly
+    then:
+      - lambda: |-
+          ESP_LOGI("WEATHER", "Starting hourly forecast update...");
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGW("WEATHER", "Nextion failed, skipping hourly update");
+            return;
+          }
+          
+          // Debug: Log first sensor value
+          ESP_LOGI("WEATHER", "HA Sensor dt0 feels_like: %.1f", id(ha_hour_0_feels_like).state);
+
+          // WMO code to Nextion icon ID mapping
+          auto wmo_to_icon = [](int wmo) -> int {
+            // Mapping based on user provided Nextion Picture IDs
+            if (wmo == 0) return 26;          // Clear sky -> Sunny
+            if (wmo == 1) return 26;          // Mainly clear -> Sunny
+            if (wmo == 2) return 22;          // Partly cloudy -> Partially cloudy
+            if (wmo == 3) return 6;           // Overcast -> Cloudy
+            if (wmo == 45 || wmo == 48) return 6; // Fog -> Cloudy (Fallback)
+            
+            if (wmo >= 51 && wmo <= 55) return 14; // Drizzle -> Light Rain
+            if (wmo == 56 || wmo == 57) return 11; // Freezing Drizzle -> Freezing Rain
+            
+            if (wmo == 61 || wmo == 63) return 14; // Rain Slight/Mod -> Light Rain
+            if (wmo == 65) return 15;              // Rain Heavy -> Heavy Rain
+            if (wmo == 66 || wmo == 67) return 11; // Freezing Rain -> Freezing Rain
+            
+            if (wmo == 71 || wmo == 73) return 19; // Snow Slight/Mod -> Light Snow
+            if (wmo == 75) return 20;              // Snow Heavy -> Heavy Snow
+            if (wmo == 77) return 19;              // Snow Grains -> Light Snow
+            
+            if (wmo == 80 || wmo == 81) return 14; // Rain Showers Sl/Mod -> Light Rain
+            if (wmo == 82) return 15;              // Rain Showers Violent -> Heavy Rain
+            
+            if (wmo == 85) return 19;              // Snow Showers Slight -> Light Snow
+            if (wmo == 86) return 20;              // Snow Showers Heavy -> Heavy Snow
+            
+            if (wmo >= 95) return 7;               // Thunderstorm -> Thunderstorm
+            
+            return 26; // Default to Sunny
+          };
+          
+          // Get current hour for time labels
+          auto time_now = id(sntp_time).now();
+          if (!time_now.is_valid()) {
+            ESP_LOGW("WEATHER", "Time not valid yet, skipping");
+            return;
+          }
+          int current_hour = time_now.hour;
+          
+
+
+          
+          // Hour 0
+          id(gazebo_nextion).send_command_printf("one.dt0.val=%d", current_hour);
+          id(gazebo_nextion).send_command_printf("one.fl0.val=%d", (int)id(ha_hour_0_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain0.val=%d", (int)id(ha_hour_0_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon0.pic=%d", wmo_to_icon((int)id(ha_hour_0_weather_code).state));
+          
+          // Hour 1
+          id(gazebo_nextion).send_command_printf("one.dt1.val=%d", (current_hour + 1) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl1.val=%d", (int)id(ha_hour_1_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain1.val=%d", (int)id(ha_hour_1_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon1.pic=%d", wmo_to_icon((int)id(ha_hour_1_weather_code).state));
+          
+          // Hour 2
+          id(gazebo_nextion).send_command_printf("one.dt2.val=%d", (current_hour + 2) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl2.val=%d", (int)id(ha_hour_2_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain2.val=%d", (int)id(ha_hour_2_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon2.pic=%d", wmo_to_icon((int)id(ha_hour_2_weather_code).state));
+          
+          // Hour 3
+          id(gazebo_nextion).send_command_printf("one.dt3.val=%d", (current_hour + 3) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl3.val=%d", (int)id(ha_hour_3_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain3.val=%d", (int)id(ha_hour_3_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon3.pic=%d", wmo_to_icon((int)id(ha_hour_3_weather_code).state));
+          
+          // Hour 4
+          id(gazebo_nextion).send_command_printf("one.dt4.val=%d", (current_hour + 4) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl4.val=%d", (int)id(ha_hour_4_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain4.val=%d", (int)id(ha_hour_4_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon4.pic=%d", wmo_to_icon((int)id(ha_hour_4_weather_code).state));
+          
+          // Hour 5
+          id(gazebo_nextion).send_command_printf("one.dt5.val=%d", (current_hour + 5) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl5.val=%d", (int)id(ha_hour_5_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain5.val=%d", (int)id(ha_hour_5_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon5.pic=%d", wmo_to_icon((int)id(ha_hour_5_weather_code).state));
+          
+          // Hour 6
+          id(gazebo_nextion).send_command_printf("one.dt6.val=%d", (current_hour + 6) % 24);
+          id(gazebo_nextion).send_command_printf("one.fl6.val=%d", (int)id(ha_hour_6_feels_like).state);
+          id(gazebo_nextion).send_command_printf("one.rain6.val=%d", (int)id(ha_hour_6_precipitation).state);
+          id(gazebo_nextion).send_command_printf("one.wxIcon6.pic=%d", wmo_to_icon((int)id(ha_hour_6_weather_code).state));
+          
+          ESP_LOGI("WEATHER", "Updated hourly forecast on Page 1");
+
+  # Update Page 2 (Daily Forecast - Prévisions)
+  - id: update_nextion_daily
+    then:
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGW("WEATHER", "Nextion failed, skipping daily update");
+            return;
+          }
+          
+          // WMO code to Nextion icon ID mapping
+          auto wmo_to_icon = [](int wmo) -> int {
+            // Mapping based on user provided Nextion Picture IDs
+            if (wmo == 0) return 26;          // Clear sky -> Sunny
+            if (wmo == 1) return 26;          // Mainly clear -> Sunny
+            if (wmo == 2) return 22;          // Partly cloudy -> Partially cloudy
+            if (wmo == 3) return 6;           // Overcast -> Cloudy
+            if (wmo == 45 || wmo == 48) return 6; // Fog -> Cloudy (Fallback)
+            
+            if (wmo >= 51 && wmo <= 55) return 14; // Drizzle -> Light Rain
+            if (wmo == 56 || wmo == 57) return 11; // Freezing Drizzle -> Freezing Rain
+            
+            if (wmo == 61 || wmo == 63) return 14; // Rain Slight/Mod -> Light Rain
+            if (wmo == 65) return 15;              // Rain Heavy -> Heavy Rain
+            if (wmo == 66 || wmo == 67) return 11; // Freezing Rain -> Freezing Rain
+            
+            if (wmo == 71 || wmo == 73) return 19; // Snow Slight/Mod -> Light Snow
+            if (wmo == 75) return 20;              // Snow Heavy -> Heavy Snow
+            if (wmo == 77) return 19;              // Snow Grains -> Light Snow
+            
+            if (wmo == 80 || wmo == 81) return 14; // Rain Showers Sl/Mod -> Light Rain
+            if (wmo == 82) return 15;              // Rain Showers Violent -> Heavy Rain
+            
+            if (wmo == 85) return 19;              // Snow Showers Slight -> Light Snow
+            if (wmo == 86) return 20;              // Snow Showers Heavy -> Heavy Snow
+            
+            if (wmo >= 95) return 7;               // Thunderstorm -> Thunderstorm
+            
+            return 26; // Default to Sunny
+          };
+          
+          // Day names in French
+          const char* day_names[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+          
+          auto time_now = id(sntp_time).now();
+          if (!time_now.is_valid()) {
+            ESP_LOGW("WEATHER", "Time not valid yet, skipping");
+            return;
+          }
+          int today = time_now.day_of_week - 1;  // 0=Sunday
+          
+          // Day 0 (Today)
+          int d0 = time_now.day_of_month;
+          int t0 = (int)id(ha_day_0_temp_max).state;
+          int p0 = (int)id(ha_day_0_precipitation).state;
+          int i0 = wmo_to_icon((int)id(ha_day_0_weather_code).state);
+          ESP_LOGI("WEATHER_DBG", "Day0: dt=%d temp=%d precip=%d icon=%d", d0, t0, p0, i0);
+          
+          id(gazebo_nextion).send_command_printf("two.dt10.val=%d", d0);
+          id(gazebo_nextion).send_command_printf("two.temp0.val=%d", t0);
+          id(gazebo_nextion).send_command_printf("two.precip0.val=%d", p0);
+          id(gazebo_nextion).send_command_printf("two.wxIcon10.pic=%d", i0);
+          
+          // Day 1
+          time_t t1 = time_now.timestamp + 86400;
+          struct tm *tm1 = localtime(&t1);
+          int d1 = tm1->tm_mday;
+          int t1_val = (int)id(ha_day_1_temp_max).state;
+          
+          id(gazebo_nextion).send_command_printf("two.dt11.val=%d", d1);
+          id(gazebo_nextion).send_command_printf("two.temp1.val=%d", t1_val);
+          id(gazebo_nextion).send_command_printf("two.precip1.val=%d", (int)id(ha_day_1_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon11.pic=%d", wmo_to_icon((int)id(ha_day_1_weather_code).state));
+          
+          // Day 2
+          time_t t2 = time_now.timestamp + 172800;
+          struct tm *tm2 = localtime(&t2);
+          id(gazebo_nextion).send_command_printf("two.dt12.val=%d", tm2->tm_mday);
+          id(gazebo_nextion).send_command_printf("two.temp2.val=%d", (int)id(ha_day_2_temp_max).state);
+          id(gazebo_nextion).send_command_printf("two.precip2.val=%d", (int)id(ha_day_2_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon12.pic=%d", wmo_to_icon((int)id(ha_day_2_weather_code).state));
+          
+          // Day 3
+          time_t t3 = time_now.timestamp + 259200;
+          struct tm *tm3 = localtime(&t3);
+          id(gazebo_nextion).send_command_printf("two.dt13.val=%d", tm3->tm_mday);
+          id(gazebo_nextion).send_command_printf("two.temp3.val=%d", (int)id(ha_day_3_temp_max).state);
+          id(gazebo_nextion).send_command_printf("two.precip3.val=%d", (int)id(ha_day_3_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon13.pic=%d", wmo_to_icon((int)id(ha_day_3_weather_code).state));
+          
+          // Day 4
+          time_t t4 = time_now.timestamp + 345600;
+          struct tm *tm4 = localtime(&t4);
+          id(gazebo_nextion).send_command_printf("two.dt14.val=%d", tm4->tm_mday);
+          id(gazebo_nextion).send_command_printf("two.temp4.val=%d", (int)id(ha_day_4_temp_max).state);
+          id(gazebo_nextion).send_command_printf("two.precip4.val=%d", (int)id(ha_day_4_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon14.pic=%d", wmo_to_icon((int)id(ha_day_4_weather_code).state));
+          
+          // Day 5
+          time_t t5 = time_now.timestamp + 432000;
+          struct tm *tm5 = localtime(&t5);
+          id(gazebo_nextion).send_command_printf("two.dt15.val=%d", tm5->tm_mday);
+          id(gazebo_nextion).send_command_printf("two.temp5.val=%d", (int)id(ha_day_5_temp_max).state);
+          id(gazebo_nextion).send_command_printf("two.precip5.val=%d", (int)id(ha_day_5_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon15.pic=%d", wmo_to_icon((int)id(ha_day_5_weather_code).state));
+          
+          // Day 6
+          time_t t6 = time_now.timestamp + 518400;
+          struct tm *tm6 = localtime(&t6);
+          id(gazebo_nextion).send_command_printf("two.dt16.val=%d", tm6->tm_mday);
+          id(gazebo_nextion).send_command_printf("two.temp6.val=%d", (int)id(ha_day_6_temp_max).state);
+          id(gazebo_nextion).send_command_printf("two.precip6.val=%d", (int)id(ha_day_6_precipitation).state);
+          id(gazebo_nextion).send_command_printf("two.wxIcon16.pic=%d", wmo_to_icon((int)id(ha_day_6_weather_code).state));
+          
+          ESP_LOGI("WEATHER", "Updated daily forecast on Page 2");
+
+# ============================================================================
+# WEATHER UPDATE INTERVAL - Refresh forecasts every 30 minutes
+# ============================================================================
+
+  # TEST SCRIPT for finding correct Icon IDs
+  - id: test_nextion_icons
+    then:
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed()) return;
+          
+          // Increment test ID
+          id(test_icon_id) += 1;
+          if (id(test_icon_id) > 100) id(test_icon_id) = 0;
+          
+          ESP_LOGI("ICON_TEST", "Testing Icon ID: %d", id(test_icon_id));
+          
+          // Update Page 1 components to show this icon
+          // Display the ID number in the 'feels like' box (fl0) so user can see it
+          id(gazebo_nextion).send_command_printf("one.fl0.val=%d", id(test_icon_id));
+          
+          // Set the icon
+          id(gazebo_nextion).send_command_printf("one.wxIcon0.pic=%d", id(test_icon_id));
+          
+          // Also set rain val to ID just in case fl0 is minimal
+          id(gazebo_nextion).send_command_printf("one.rain0.val=%d", id(test_icon_id));
+
+interval:
+  - interval: 30min
+    then:
+      #- script.execute: test_nextion_icons
+      - script.execute: update_nextion_hourly
+      - script.execute: update_nextion_daily

@@ -209,3 +209,9 @@ globals:
     type: int
     restore_value: no
     initial_value: '0'
+
+  # Test Icon ID for finding correct weather icons
+  - id: test_icon_id
+    type: int
+    restore_value: no
+    initial_value: '0'
