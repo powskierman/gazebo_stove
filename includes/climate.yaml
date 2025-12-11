@@ -69,7 +69,7 @@ climate:
     # Update Nextion display when target temperature changes
     on_control:
       - lambda: |-
-          if (id(gazebo_nextion).is_failed() == false) {
+          if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
             float target = id(gazebo_thermostat).target_temperature;
             // n0: desired temperature (left side)
             id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);

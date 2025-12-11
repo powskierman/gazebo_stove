@@ -215,3 +215,9 @@ globals:
     type: int
     restore_value: no
     initial_value: '0'
+
+  # Nextion display ready flag - prevents early sends before init
+  - id: nextion_ready
+    type: bool
+    restore_value: no
+    initial_value: 'false'

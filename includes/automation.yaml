@@ -52,7 +52,6 @@ script:
             // Humidity/Precip
             if (!isnan(id(gazebo_humidity).state)) {
               id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
-              id(gazebo_nextion).send_command_printf("precip.val=%d", (int)id(gazebo_humidity).state);
             }
 
             // ============================================================
@@ -60,15 +59,17 @@ script:
             // ============================================================
             float target = id(gazebo_thermostat).target_temperature;
             // n0: desired temperature (left side)
-            id(gazebo_nextion).send_command_printf("n0.val=%d", (int)target);
+            id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
             // n1: actual temperature (right side)
-            id(gazebo_nextion).send_command_printf("n1.val=%d", (int)id(gazebo_temp).state);
+            id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
             // Slider0: map 15-30°C to 0-100
             int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
             if (slider_val < 0) slider_val = 0;
             if (slider_val > 100) slider_val = 100;
-            id(gazebo_nextion).send_command_printf("Slider0.val=%d", slider_val);
+            id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
 
+            // Mark Nextion as ready for other components to send
+            id(nextion_ready) = true;
             ESP_LOGI("NEXTION_INIT", "Display initialization complete (target=%.1f, slider=%d)", target, slider_val);
           } else {
             ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
