@@ -36,49 +36,123 @@ script:
     then:
       - delay: 30s  # Wait for ESP32 and Nextion to settle
       - logger.log: "Initializing Nextion display..."
+      # Wait for display to be awake (up to 60 seconds)
       - lambda: |-
-          if (id(gazebo_nextion).is_failed() == false) {
-            id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
-            id(gazebo_nextion).send_command("cls 0x0000");
-            id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
-            ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
-
-            // ============================================================
-            // Page 0: Update with initial values
-            // ============================================================
-            // Temperature
-            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
-            
-            // Humidity/Precip
-            if (!isnan(id(gazebo_humidity).state)) {
-              id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
-            }
-
-            // ============================================================
-            // Page 3: Initialize temperature controls
-            // ============================================================
-            float target = id(gazebo_thermostat).target_temperature;
-            // n0: desired temperature (left side)
-            id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
-            // n1: actual temperature (right side)
-            id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
-            // Slider0: map 15-30°C to 0-100
-            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
-            if (slider_val < 0) slider_val = 0;
-            if (slider_val > 100) slider_val = 100;
-            id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
-
-            // Mark Nextion as ready for other components to send
-            id(nextion_ready) = true;
-            ESP_LOGI("NEXTION_INIT", "Display initialization complete (target=%.1f, slider=%d)", target, slider_val);
-          } else {
-            ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
+          if (id(nextion_sleeping)) {
+            ESP_LOGI("NEXTION_INIT", "Display is sleeping, waiting for wake...");
           }
-      # Update weather displays immediately on boot
-      - delay: 2s  # Brief delay for HA sensors to connect
+      - wait_until:
+          condition:
+            lambda: 'return !id(nextion_sleeping);'
+          timeout: 60s
+      - if:
+          condition:
+            lambda: 'return id(nextion_sleeping);'
+          then:
+            - logger.log:
+                level: WARN
+                format: "Display still sleeping after 60s - deferring init to on_wake"
+          else:
+            - lambda: |-
+                if (id(gazebo_nextion).is_failed() == false) {
+                  id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
+                  id(gazebo_nextion).send_command("cls 0x0000");
+                  id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
+                  ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
+
+                  // ============================================================
+                  // Page 0: Update with initial values
+                  // ============================================================
+                  // Temperature
+                  id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
+                  
+                  // Humidity/Precip
+                  if (!isnan(id(gazebo_humidity).state)) {
+                    id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
+                  }
+
+                  // ============================================================
+                  // Page 3: Initialize temperature controls
+                  // ============================================================
+                  float target = id(gazebo_thermostat).target_temperature;
+                  // n0: desired temperature (left side)
+                  id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
+                  // n1: actual temperature (right side)
+                  id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
+                  // Slider0: map 15-30°C to 0-100
+                  int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
+                  if (slider_val < 0) slider_val = 0;
+                  if (slider_val > 100) slider_val = 100;
+                  id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
+
+                  // Mark Nextion as ready for other components to send
+                  id(nextion_ready) = true;
+                  ESP_LOGI("NEXTION_INIT", "Display initialization complete (target=%.1f, slider=%d)", target, slider_val);
+                } else {
+                  ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
+                }
+            # Update weather displays immediately on boot
+            - delay: 2s  # Brief delay for HA sensors to connect
+            - script.execute: update_nextion_hourly
+            - script.execute: update_nextion_daily
+            - logger.log: "Weather data sent to Pages 1 and 2"
+
+
+  # Refresh all Nextion pages when display wakes from sleep
+  # Called by on_wake trigger in display.yaml
+  # Also handles deferred initialization if display was sleeping on boot
+  - id: refresh_nextion_all
+    then:
+      - lambda: |-
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGW("NEXTION_WAKE", "Display failed, skipping refresh");
+            return;
+          }
+          
+          // Check if we need to do initial setup (deferred from boot)
+          if (!id(nextion_ready)) {
+            ESP_LOGI("NEXTION_WAKE", "Display was sleeping on boot - performing deferred init");
+            id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
+            id(nextion_ready) = true;
+          }
+          
+          ESP_LOGI("NEXTION_WAKE", "Refreshing all pages after wake...");
+          
+          // ============================================================
+          // Page 0: Current conditions
+          // ============================================================
+          if (!isnan(id(gazebo_temp).state)) {
+            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
+          }
+          if (!isnan(id(gazebo_humidity).state)) {
+            id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
+          }
+          
+          // ============================================================
+          // Page 3: Thermostat controls
+          // ============================================================
+          float target = id(gazebo_thermostat).target_temperature;
+          id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
+          id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
+          
+          // Update slider position
+          int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
+          if (slider_val < 0) slider_val = 0;
+          if (slider_val > 100) slider_val = 100;
+          id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
+          
+          ESP_LOGI("NEXTION_WAKE", "Page 0 and 3 refreshed (temp=%.1f, target=%.1f)", 
+                   id(gazebo_temp).state, target);
+      
+      # Small delay to let page 0/3 commands complete
+      - delay: 100ms
+      # Update weather pages (1 and 2)
       - script.execute: update_nextion_hourly
+      - delay: 100ms
       - script.execute: update_nextion_daily
-      - logger.log: "Weather data sent to Pages 1 and 2"
+      - logger.log: "All Nextion pages refreshed after wake"
+
+
 
   # Manage heating with priority logic for PID Controller
   # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > PID Thermostat

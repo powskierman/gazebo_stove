@@ -63,12 +63,28 @@ display:
               id(slider_touched) = true;
               ESP_LOGI("NEXTION_SLIDER", "Slider touch released on Page 3");
             }
+    on_sleep:
+      then:
+        - lambda: |-
+            id(nextion_sleeping) = true;
+            ESP_LOGI("NEXTION_SLEEP", "Display entered sleep mode");
+    on_wake:
+      then:
+        - lambda: |-
+            id(nextion_sleeping) = false;
+            ESP_LOGI("NEXTION_WAKE", "Display woke from sleep - waiting for ready...");
+        - delay: 500ms  # Give Nextion time to fully wake before sending commands
+        - script.execute: refresh_nextion_all
     on_setup:
       then:
         - logger.log: "Nextion display connected"
+        - lambda: |-
+            // Display just connected - assume it's awake
+            id(nextion_sleeping) = false;
     lambda: |-
       // Placeholder lambda - display updates via send_command_printf
       ESP_LOGD("NEXTION", "Display lambda executed");
+
 
 # ============================================================================
 # NEXTION SLIDER INPUT - Process slider touch events

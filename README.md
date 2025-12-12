@@ -132,30 +132,19 @@ Each priority level triggers only when its state changes, not continuously.
 
 ---
 
-## Documentation Structure
+## Documentation
 
-### For Everyone
-- **[README.md](README.md)** (this file) - Project overview
-- **[TESTING_SUMMARY.md](TESTING_SUMMARY.md)** - Latest test results (all systems verified)
-- **[TROUBLESHOOTING_GUIDE.md](TROUBLESHOOTING_GUIDE.md)** - Comprehensive troubleshooting reference
-- **[IMPLEMENTATION_COMPLETE.md](IMPLEMENTATION_COMPLETE.md)** - Summary of optimization work
+See [Docs/README.md](Docs/README.md) for complete documentation index.
 
-### For Home Assistant Users
-- **[HASS_IMPLEMENTATION_GUIDE.md](HASS_IMPLEMENTATION_GUIDE.md)** - Migration guide
-- **[homeassistant/README.md](homeassistant/README.md)** - Configuration reference
-
-### For Architects/Developers
-- **[EVENT_DRIVEN_PRIORITY_SYSTEM.md](EVENT_DRIVEN_PRIORITY_SYSTEM.md)** - Architecture details
-- **[SCHEDULE_IMPLEMENTATION_ANALYSIS.md](SCHEDULE_IMPLEMENTATION_ANALYSIS.md)** - Design justification
-- **[SCHEDULE_MIGRATION_GUIDE.md](SCHEDULE_MIGRATION_GUIDE.md)** - Technical migration details
-
-### Planning Documents
-- **[Docs/README.md](Docs/README.md)** - Original project planning and specification
-- **[Docs/PLAN.md](Docs/PLAN.md)** - Implementation roadmap
-- **[Docs/SPECIFICATION.md](Docs/SPECIFICATION.md)** - Detailed requirements
-- **[Docs/FEATURE_MAPPING.md](Docs/FEATURE_MAPPING.md)** - Arduino to ESPHome mapping
+### Quick Links
+- **[Quick Start](Docs/getting-started/quick-start.md)** - Hardware setup & first flash
+- **[Home Assistant](Docs/getting-started/home-assistant.md)** - HA integration guide
+- **[Quick Reference](Docs/reference/quick-reference.md)** - Commands & common tasks
+- **[Priority System](Docs/reference/priority-system.md)** - Event-driven architecture
+- **[Scheduling](Docs/reference/scheduling.md)** - Home/Away mode automation
 
 ---
+
 
 ## Getting Started
 

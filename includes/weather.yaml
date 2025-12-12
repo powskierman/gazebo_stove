@@ -294,9 +294,6 @@ script:
           }
           int current_hour = time_now.hour;
           
-
-
-          
           // Hour 0
           id(gazebo_nextion).send_command_printf("one.dt0.val=%d", current_hour);
           id(gazebo_nextion).send_command_printf("one.fl0.val=%d", (int)id(ha_hour_0_feels_like).state);

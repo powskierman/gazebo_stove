@@ -221,3 +221,10 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+
+  # Nextion display sleep state - true when display is asleep
+  - id: nextion_sleeping
+    type: bool
+    restore_value: no
+    initial_value: 'true'  # Assume sleeping on boot until on_wake fires
+
