@@ -1,22 +1,82 @@
-# ============================================================================
-# HOME ASSISTANT THERMOSTAT CARD CONFIGURATION
-# ============================================================================
-# Lovelace card YAML for the Propane Stove Thermostat
-# 
-# Usage: Add this as a card in your Lovelace dashboard
-# 
-# IMPORTANT: After uploading ESPHome config, verify the entity exists:
-# 1. Go to Settings > Devices & Services > ESPHome
-# 2. Find your "gazebo-stove" device
-# 3. Check the entities list for "Propane Stove Thermostat"
-# 4. The entity ID will be shown there (likely: climate.propane_stove_thermostat)
-# 
-# If entity doesn't exist:
-# - Make sure you've uploaded the new ESPHome configuration
-# - Check that the device is online and connected
-# - Restart Home Assistant if needed
-# ============================================================================
+type: vertical-stack
+cards:
+  # ============================================================================
+  # MAIN THERMOSTAT CONTROL
+  # ============================================================================
+  - type: thermostat
+    entity: climate.gazebo_stove_propane_stove_thermostat
+    show_current_as_primary: true
+    features:
+      - type: climate-hvac-modes
+        hvac_modes:
+          - heat
+          - "off"
+    name: Gazebo Stove
 
-type: thermostat
-entity: climate.gazebo_stove_propane_stove_thermostat
+  # ============================================================================
+  # SCHEDULE SETTINGS
+  # ============================================================================
+  - type: entities
+    title: Schedule Settings
+    show_header_toggle: false
+    state_color: true
+    entities:
+      - entity: switch.gazebo_stove_heating_control_schedule_enabled
+        name: Enable Schedule
+      - type: section
+        label: Daily Cycle (24h)
+      - entity: time.gazebo_stove_heating_control_home_time_24h
+        name: Home Start Time (Start Heating)
+      - entity: time.gazebo_stove_heating_control_away_time_24h
+        name: Away Start Time (Stop Heating)
 
+  # ============================================================================
+  # CONTROLS, STATUS & CALIBRATION
+  # ============================================================================
+  - type: entities
+    title: Controls & Status
+    show_header_toggle: false
+    entities:
+      # --- CONTROLS ---
+      - entity: switch.gazebo_stove_manual_run
+        name: 🚨 Emergency Heat (15m)
+      - entity: switch.gazebo_stove_manual_stop
+        name: ❌ Force OFF
+      - type: section
+        label: Advanced Settings
+      - entity: number.gazebo_stove_heating_hysteresis
+        name: 〰️ Heating Hysteresis
+      - entity: number.gazebo_stove_temperature_offset
+        name: 📏 Temp Calibration
+
+      # --- STATUS (Moved here as requested) ---
+      - type: section
+        label: Current Status
+      - entity: select.gazebo_stove_presence_mode
+        name: 🏠 Current Mode
+      - entity: sensor.gazebo_stove_heating_status
+        name: ℹ️ System Status
+      - entity: sensor.gazebo_stove_wifi_signal_strength
+        name: 📡 WiFi Signal Strength
+      - entity: light.gazebo_stove_status_led
+        name: 💡 Status LED
+      - entity: binary_sensor.gazebo_stove_sensor_malfunction
+        name: ⚠️ Sensor Malfunction
+
+      # --- MAINTENANCE ---
+      - type: divider
+      - entity: button.gazebo_stove_device_restart
+        name: 🔄 Restart Device
+      - entity: button.gazebo_stove_safe_shutdown
+        name: 🛑 Safe Shutdown
+    
+  # ============================================================================
+  # TEMPERATURE HISTORY GRAPH
+  # ============================================================================
+  - type: history-graph
+    title: Temperature History (24h)
+    hours_to_show: 24
+    refresh_interval: 60
+    entities:
+      - entity: sensor.gazebo_stove_gazebo_temperature
+        name: Temperature

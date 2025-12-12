@@ -63,10 +63,7 @@ sensor:
                   }
               # Check if relay should be on/off based on current climate state
               - script.execute: manage_heating
-        # Update Nextion display - Try ALL common component names with page prefix
-        # Update Nextion display
-        # Update Nextion display
-        # Update Nextion display
+        # Update Nextion display with current temperature
         - lambda: |-
             if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
               ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);

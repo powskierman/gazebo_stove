@@ -12,6 +12,12 @@ uart:
     tx_pin: GPIO17
     rx_pin: GPIO16
     baud_rate: 115200
+    # UART Debug - Parses Nextion Custom Sensor Protocol
+    # --------------------------------------------------------
+    # Protocol: 0x91 + 4-byte little-endian integer (slider value 0-100)
+    # Sent by: Nextion HMI using "printh" command on slider release
+    # Example: 0x91 0x32 0x00 0x00 0x00 = slider value 50 (0x32)
+    # Slider maps: 0-100 → 15-30°C (SLIDER_RANGE = 15°C)
     debug:
       direction: RX  # Only log received data
       dummy_receiver: false
@@ -29,7 +35,10 @@ uart:
               uint32_t slider_val = bytes[1] | (bytes[2] << 8) | (bytes[3] << 16) | (bytes[4] << 24);
               
               if (slider_val <= 100) {
-                // Convert slider value (0-100) to temperature (15-30°C)
+                // SLIDER TEMPERATURE MAPPING:
+                // Slider value 0-100 maps to temperature 15-30°C
+                // Formula: temp = 15 + (slider / 100) * 15
+                // Reverse: slider = ((temp - 15) / 15) * 100
                 float desired_temp = 15.0f + ((float)slider_val / 100.0f) * 15.0f;
                 ESP_LOGI("NEXTION_SLIDER", "Slider: %d -> Temperature: %.1f°C", slider_val, desired_temp);
                 

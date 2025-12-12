@@ -73,7 +73,7 @@ climate:
             float target = id(gazebo_thermostat).target_temperature;
             // n0: desired temperature (left side)
             id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
-            // Slider0: map 15-30°C to 0-100
+            // Slider0: map 15-30°C to 0-100 (see display.yaml for formula)
             int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
             if (slider_val < 0) slider_val = 0;
             if (slider_val > 100) slider_val = 100;
