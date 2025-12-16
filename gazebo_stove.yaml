@@ -13,3 +13,4 @@ packages:
   climate: !include includes/climate.yaml
   buttons: !include includes/buttons.yaml
   weather: !include includes/weather.yaml
+

@@ -1,83 +1,169 @@
 # ============================================================================
 # SENSORS & MEASUREMENTS
 # ============================================================================
-# Temperature sensor (DS18B20), WiFi signal strength, and sensor diagnostics
+# Temperature sensor (DHT22 or DS18B20), WiFi signal strength, and sensor diagnostics
+#
+# SENSOR SELECTION:
+# - Set sensor_type in core.yaml to "dht22" or "ds18b20"
+# - DHT22: Provides both temperature AND humidity on a single GPIO pin
+# - DS18B20: Temperature only via OneWire (humidity imported from Home Assistant)
 
 sensor:
-  # DS18B20 Temperature Sensor
-  - platform: dallas_temp
-    one_wire_id: ow_bus
-    id: gazebo_temp
-    name: "Gazebo Temperature"
-    address: 0x7ce066bd0164ff28
-    resolution: 12
+  # ============================================================================
+  # DS18B20 Temperature Sensor (OneWire) - DISABLED
+  # ============================================================================
+  # Used when sensor_type is "ds18b20"
+  # To enable: uncomment this section and comment out DHT22 section below
+  # - platform: dallas_temp
+  #   one_wire_id: ow_bus
+  #   id: gazebo_temp
+  #   name: "Gazebo Temperature"
+  #   address: 0x7ce066bd0164ff28
+  #   resolution: 12
+  #   update_interval: 10s
+  #   disabled_by_default: false
+  #   filters:
+  #     # Moving average to smooth readings (recalculates when offset changes)
+  #     - sliding_window_moving_average:
+  #         window_size: 5
+  #         send_every: 1
+  #     # Apply temperature offset/calibration (recalculates dynamically)
+  #     - lambda: |-
+  #         return x + id(temp_offset).state;
+  #     # Clamp to valid range (-40°C to 85°C)
+  #     - clamp:
+  #         min_value: -40
+  #         max_value: 85
+  #
+  #   # Bad read detection and heating control
+  #   on_value:
+  #     then:
+  #       - lambda: |-
+  #           if (isnan(x)) {
+  #             id(bad_read_count) += 1;
+  #             ESP_LOGI("TEMP_SENSOR", "Bad temperature read #%d", id(bad_read_count));
+  #             if (id(bad_read_count) > 10) {
+  #               id(sensor_malfunction).publish_state(true);
+  #               ESP_LOGI("TEMP_SENSOR", "ALARM: Sensor malfunction detected!");
+  #             }
+  #           } else {
+  #             if (id(bad_read_count) > 0) {
+  #               ESP_LOGI("TEMP_SENSOR", "Sensor recovered - resetting bad read counter");
+  #             }
+  #             id(bad_read_count) = 0;
+  #             if (id(sensor_malfunction).state) {
+  #               id(sensor_malfunction).publish_state(false);
+  #             }
+  #           }
+  #       # Force climate platform to republish state with updated temperature
+  #       # This ensures the climate entity's "Currently" temperature updates in Home Assistant
+  #       # AND it triggers the climate platform to re-evaluate if it should heat/idle
+  #       - if:
+  #           condition:
+  #             lambda: |-
+  #               return !isnan(x);
+  #           then:
+  #             - lambda: !lambda |-
+  #                 auto* climate = id(gazebo_thermostat);
+  #                 if (climate != nullptr) {
+  #                   climate->publish_state();
+  #                   ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
+  #                 }
+  #             # Check if relay should be on/off based on current climate state
+  #             - script.execute: manage_heating
+  #       # Update Nextion display with current temperature
+  #       - lambda: |-
+  #           if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+  #             ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);
+  #             // Page 0: Update 'temp' component
+  #             id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
+  #             // Page 3: Update 'n1' (actual temperature - right side)
+  #             id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)x);
+  #           } else if (!id(nextion_ready)) {
+  #             ESP_LOGD("NEXTION", "Skipping temp send - display not ready yet");
+  #           } else {
+  #             ESP_LOGW("NEXTION", "Display is_failed=true, skipping update");
+  #           }
+
+  # ============================================================================
+  # DHT22 Temperature & Humidity Sensor - ENABLED
+  # ============================================================================
+  # Used when sensor_type is "dht22"
+  - platform: dht
+    pin: ${sensor_pin}
+    model: DHT22
     update_interval: 10s
-    filters:
-      # Moving average to smooth readings (recalculates when offset changes)
-      - sliding_window_moving_average:
-          window_size: 5
-          send_every: 1
-      # Apply temperature offset/calibration (recalculates dynamically)
-      - lambda: |-
-          return x + id(temp_offset).state;
-      # Clamp to valid range (-40°C to 85°C)
-      - clamp:
-          min_value: -40
-          max_value: 85
-      # Rate limiting removed for debugging
-      #- delta: 1.0
-
-    # Bad read detection and heating control
-    on_value:
-      then:
+    temperature:
+      id: gazebo_temp
+      name: "Gazebo Temperature"
+      filters:
+        - sliding_window_moving_average:
+            window_size: 5
+            send_every: 1
         - lambda: |-
-            if (isnan(x)) {
-              id(bad_read_count) += 1;
-              ESP_LOGI("TEMP_SENSOR", "Bad temperature read #%d", id(bad_read_count));
-              if (id(bad_read_count) > 10) {
-                id(sensor_malfunction).publish_state(true);
-                ESP_LOGI("TEMP_SENSOR", "ALARM: Sensor malfunction detected!");
+            return x + id(temp_offset).state;
+        - clamp:
+            min_value: -40
+            max_value: 80
+      on_value:
+        then:
+          - lambda: |-
+              if (isnan(x)) {
+                id(bad_read_count) += 1;
+                ESP_LOGI("TEMP_SENSOR", "Bad temperature read #%d", id(bad_read_count));
+                if (id(bad_read_count) > 10) {
+                  id(sensor_malfunction).publish_state(true);
+                  ESP_LOGI("TEMP_SENSOR", "ALARM: Sensor malfunction detected!");
+                }
+              } else {
+                if (id(bad_read_count) > 0) {
+                  ESP_LOGI("TEMP_SENSOR", "Sensor recovered - resetting bad read counter");
+                }
+                id(bad_read_count) = 0;
+                if (id(sensor_malfunction).state) {
+                  id(sensor_malfunction).publish_state(false);
+                }
               }
-            } else {
-              if (id(bad_read_count) > 0) {
-                ESP_LOGI("TEMP_SENSOR", "Sensor recovered - resetting bad read counter");
+          - if:
+              condition:
+                lambda: |-
+                  return !isnan(x);
+              then:
+                - lambda: !lambda |-
+                    auto* climate = id(gazebo_thermostat);
+                    if (climate != nullptr) {
+                      climate->publish_state();
+                      ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
+                    }
+                - script.execute: manage_heating
+          - lambda: |-
+              if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+                ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);
+                id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
+                id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)x);
+              } else if (!id(nextion_ready)) {
+                ESP_LOGD("NEXTION", "Skipping temp send - display not ready yet");
+              } else {
+                ESP_LOGW("NEXTION", "Display is_failed=true, skipping update");
               }
-              id(bad_read_count) = 0;
-              if (id(sensor_malfunction).state) {
-                id(sensor_malfunction).publish_state(false);
+    humidity:
+      id: gazebo_humidity
+      name: "Gazebo Humidity"
+      filters:
+        - sliding_window_moving_average:
+            window_size: 5
+            send_every: 1
+      on_value:
+        then:
+          - lambda: |-
+              if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+                ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
+                id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
               }
-            }
-        # Force climate platform to republish state with updated temperature
-        # This ensures the climate entity's "Currently" temperature updates in Home Assistant
-        # AND it triggers the climate platform to re-evaluate if it should heat/idle
-        - if:
-            condition:
-              lambda: |-
-                return !isnan(x);
-            then:
-              - lambda: !lambda |-
-                  auto* climate = id(gazebo_thermostat);
-                  if (climate != nullptr) {
-                    climate->publish_state();
-                    ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
-                  }
-              # Check if relay should be on/off based on current climate state
-              - script.execute: manage_heating
-        # Update Nextion display with current temperature
-        - lambda: |-
-            if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
-              ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);
-              // Page 0: Update 'temp' component
-              id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
-              // Page 3: Update 'n1' (actual temperature - right side)
-              id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)x);
-            } else if (!id(nextion_ready)) {
-              ESP_LOGD("NEXTION", "Skipping temp send - display not ready yet");
-            } else {
-              ESP_LOGW("NEXTION", "Display is_failed=true, skipping update");
-            }
 
+  # ============================================================================
   # WiFi Signal Strength
+  # ============================================================================
   - platform: wifi_signal
     name: "WiFi Signal Strength"
     id: wifi_signal_strength
@@ -85,16 +171,20 @@ sensor:
     unit_of_measurement: "dBm"
     entity_category: "diagnostic"
 
-  # Import Humidity from Home Assistant
-  - platform: homeassistant
-    id: gazebo_humidity
-    entity_id: sensor.gazebo_current_humidity
-    internal: true
-    on_value:
-      then:
-        - lambda: |-
-            if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
-              ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
-              // Update 'precip' component on Page 'zero'
-              id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
-            }
+  # ============================================================================
+  # Import Humidity from Home Assistant (DS18B20 mode only) - DISABLED
+  # ============================================================================
+  # This is used when sensor_type is "ds18b20" since DS18B20 doesn't measure humidity
+  # Commented out because DHT22 provides humidity directly
+  # - platform: homeassistant
+  #   id: gazebo_humidity
+  #   entity_id: sensor.gazebo_current_humidity
+  #   internal: true
+  #   on_value:
+  #     then:
+  #       - lambda: |-
+  #           if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+  #             ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
+  #             // Update 'precip' component on Page 'zero'
+  #             id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
+  #           }

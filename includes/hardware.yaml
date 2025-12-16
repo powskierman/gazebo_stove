@@ -4,13 +4,13 @@
 # GPIO pins, output drivers, relays, LEDs, one-wire bus
 
 # ============================================================================
-# ONE-WIRE BUS CONFIGURATION (GPIO4) - DS18B20 Temperature Sensor
+# ONE-WIRE BUS CONFIGURATION - DS18B20 Temperature Sensor
 # ============================================================================
-
-one_wire:
-  - platform: gpio
-    id: ow_bus
-    pin: GPIO4
+# Only used when sensor_type is "ds18b20" - DISABLED for DHT22
+# one_wire:
+#   - platform: gpio
+#     id: ow_bus
+#     pin: ${sensor_pin}
 
 # ============================================================================
 # GPIO OUTPUT - Status LED (GPIO2)

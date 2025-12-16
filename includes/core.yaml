@@ -3,6 +3,16 @@
 # ============================================================================
 # Board configuration, WiFi, API, OTA, NTP, Logging
 
+# ============================================================================
+# SENSOR TYPE SELECTION
+# ============================================================================
+# Choose temperature sensor: 'dht22' or 'ds18b20'
+# DHT22: Measures both temperature and humidity (single GPIO pin)
+# DS18B20: Temperature only via OneWire (humidity imported from Home Assistant)
+substitutions:
+  sensor_type: "dht22"  # Options: "dht22" or "ds18b20"
+  sensor_pin: "GPIO4"     # GPIO pin for the sensor
+
 esphome:
   name: gazebo-stove
   friendly_name: Gazebo Stove Heating Control
