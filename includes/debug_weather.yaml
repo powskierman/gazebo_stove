@@ -1,0 +1,25 @@
+# Debugging Text Sensor for HA Raw Value
+# Included in gazebo_stove.yaml as 'text_sensor:' but since core.yaml probably has text_sensor too, 
+# we should be careful. Actually, multiple 'text_sensor:' keys in packages merge fine.
+
+text_sensor:
+  - platform: homeassistant
+    id: debug_ha_raw_temp
+    entity_id: sensor.gazebo_day_0_temperature_max
+    internal: true
+    on_value:
+      then:
+        - logger.log: 
+            format: "DEBUG_RAW_HA_VAL: '%s'"
+            args: [ 'x.c_str()' ]
+
+  # Control: Standard HA entity that always exists
+  - platform: homeassistant
+    id: debug_ha_sun
+    entity_id: sun.sun
+    internal: true
+    on_value:
+      then:
+        - logger.log: 
+            format: "DEBUG_SUN_STATE: '%s'"
+            args: [ 'x.c_str()' ]

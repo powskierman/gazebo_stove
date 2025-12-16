@@ -138,8 +138,7 @@ sensor:
                 - script.execute: manage_heating
           - lambda: |-
               if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
-                ESP_LOGI("NEXTION", "Sending temp %.1f to display", x);
-                id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
+                // Page 3: Update 'n1' (local temp) - Keeping local temp for thermostat page
                 id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)x);
               } else if (!id(nextion_ready)) {
                 ESP_LOGD("NEXTION", "Skipping temp send - display not ready yet");
@@ -153,13 +152,33 @@ sensor:
         - sliding_window_moving_average:
             window_size: 5
             send_every: 1
-      on_value:
-        then:
-          - lambda: |-
-              if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
-                ESP_LOGD("NEXTION_DEBUG", "Sending humidity %.1f%% to display", x);
-                id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
-              }
+      # Note: Page 0 humidity update removed from here (moved to ha_acurite_humidity)
+      # on_value logic removed to prevent overwriting unique Page 0 data
+
+  # ============================================================================
+  # HA SENSORS (AcuRite) - For Page 0 Display
+  # ============================================================================
+  - platform: homeassistant
+    id: ha_acurite_temp
+    entity_id: sensor.acurite_tower_b_10798_temperature
+    on_value:
+      then:
+        - lambda: |-
+            if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+              // Update 'temp' component on Page 0 (Status Page)
+              id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)x);
+            }
+
+  - platform: homeassistant
+    id: ha_acurite_humidity
+    entity_id: sensor.acurite_tower_b_10798_humidity
+    on_value:
+      then:
+        - lambda: |-
+            if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+              // Update 'precip' component on Page 0 (Status Page) -- using 'precip' for humidity
+              id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)x);
+            }
 
   # ============================================================================
   # WiFi Signal Strength

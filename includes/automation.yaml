@@ -65,11 +65,14 @@ script:
                   // Page 0: Update with initial values
                   // ============================================================
                   // Temperature
-                  id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
+                  // Temperature (Page 0) - Using AcuRite
+                  if (!isnan(id(ha_acurite_temp).state)) {
+                    id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(ha_acurite_temp).state);
+                  }
                   
-                  // Humidity/Precip
-                  if (!isnan(id(gazebo_humidity).state)) {
-                    id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
+                  // Humidity/Precip (Page 0) - Using AcuRite
+                  if (!isnan(id(ha_acurite_humidity).state)) {
+                    id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(ha_acurite_humidity).state);
                   }
 
                   // ============================================================
@@ -121,13 +124,13 @@ script:
           ESP_LOGI("NEXTION_WAKE", "Refreshing all pages after wake...");
           
           // ============================================================
-          // Page 0: Current conditions
+          // Page 0: Current conditions (AcuRite)
           // ============================================================
-          if (!isnan(id(gazebo_temp).state)) {
-            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(gazebo_temp).state);
+          if (!isnan(id(ha_acurite_temp).state)) {
+            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(ha_acurite_temp).state);
           }
-          if (!isnan(id(gazebo_humidity).state)) {
-            id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(gazebo_humidity).state);
+          if (!isnan(id(ha_acurite_humidity).state)) {
+            id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(ha_acurite_humidity).state);
           }
           
           // ============================================================
@@ -333,14 +336,14 @@ interval:
     then:
       - lambda: |-
           if (id(gazebo_nextion).is_failed() == false) {
-             // Refresh Temperature on Page 0
-             if (!isnan(id(gazebo_temp).state)) {
-               int t = (int)id(gazebo_temp).state;
+             // Refresh Temperature on Page 0 (AcuRite)
+             if (!isnan(id(ha_acurite_temp).state)) {
+               int t = (int)id(ha_acurite_temp).state;
                id(gazebo_nextion).send_command_printf("zero.temp.val=%d", t);
              }
-             // Refresh Humidity on Page 0
-             if (!isnan(id(gazebo_humidity).state)) {
-               int h = (int)id(gazebo_humidity).state;
+             // Refresh Humidity on Page 0 (AcuRite)
+             if (!isnan(id(ha_acurite_humidity).state)) {
+               int h = (int)id(ha_acurite_humidity).state;
                id(gazebo_nextion).send_command_printf("zero.precip.val=%d", h);
              }
           }
