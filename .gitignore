@@ -9,3 +9,8 @@
 
 # Claude Code local settings
 /.claude/settings.local.json
+esphome/build/
+.esphome/external_components/
+.esphome/.esphome_cache/
+.venv/
+node_modules/
