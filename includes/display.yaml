@@ -134,6 +134,8 @@ display:
         - lambda: |-
             // Display just connected - assume it's awake
             id(nextion_sleeping) = false;
+            id(gazebo_nextion).send_command("page 0");
+            ESP_LOGI("NEXTION_INIT", "Display forced to Page 0 on setup");
     lambda: |-
       // Placeholder lambda - display updates via send_command_printf
       ESP_LOGD("NEXTION", "Display lambda executed");
