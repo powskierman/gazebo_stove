@@ -103,7 +103,16 @@ sensor:
     on_value:
       then:
         - lambda: |-
-            // Suppressed until the flashed Nextion TFT is confirmed to expose this field.
+            if (isnan(x)) {
+              ESP_LOGW("NEXTION_NHMETEO", "Skipping invalid NHMeteo temperature");
+            } else if (!id(nextion_ready)) {
+              ESP_LOGD("NEXTION_NHMETEO", "Display not ready; NHMeteo temperature %.1f not sent", x);
+            } else if (id(gazebo_nextion).is_failed()) {
+              ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; NHMeteo temperature not sent");
+            } else {
+              id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(x));
+              ESP_LOGI("NEXTION_NHMETEO", "Sent page zero temp.val=%d", (int) round(x));
+            }
 
   - platform: homeassistant
     id: ha_nhmeteo_humidity
@@ -112,7 +121,16 @@ sensor:
     on_value:
       then:
         - lambda: |-
-            // Suppressed until the flashed Nextion TFT is confirmed to expose this field.
+            if (isnan(x)) {
+              ESP_LOGW("NEXTION_NHMETEO", "Skipping invalid NHMeteo humidity");
+            } else if (!id(nextion_ready)) {
+              ESP_LOGD("NEXTION_NHMETEO", "Display not ready; NHMeteo humidity %.1f not sent", x);
+            } else if (id(gazebo_nextion).is_failed()) {
+              ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; NHMeteo humidity not sent");
+            } else {
+              id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(x));
+              ESP_LOGI("NEXTION_NHMETEO", "Sent page zero precip.val=%d from NHMeteo humidity", (int) round(x));
+            }
 
   # ============================================================================
   # WiFi Signal Strength

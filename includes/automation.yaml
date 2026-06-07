@@ -40,6 +40,16 @@ script:
 
           // Mark Nextion as ready for other components to send
           id(nextion_ready) = true;
+
+          if (!isnan(id(ha_nhmeteo_temp).state)) {
+            id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+            ESP_LOGI("NEXTION_NHMETEO", "Initialized page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+          }
+          if (!isnan(id(ha_nhmeteo_humidity).state)) {
+            id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(id(ha_nhmeteo_humidity).state));
+            ESP_LOGI("NEXTION_NHMETEO", "Initialized page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
+          }
+
           ESP_LOGI("NEXTION_INIT", "Display initialization complete");
 
 
