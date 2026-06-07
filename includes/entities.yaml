@@ -196,6 +196,12 @@ globals:
     restore_value: no
     initial_value: 'false'
 
+  # Waiting for Nextion numeric return from get three.Slider0.val
+  - id: nextion_slider_read_pending
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
   # Heater output level tracker (0.0 to 1.0)
   # Used to track slow_pwm output since it doesn't have get_state()
   - id: heater_output_level

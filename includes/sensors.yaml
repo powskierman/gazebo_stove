@@ -5,13 +5,13 @@
 # WiFi signal strength, and sensor diagnostics.
 
 sensor:
-  # Nextion v4 thermostat page slider. The HMI emits a custom status packet on
-  # release; automation.yaml responds by polling Slider0.val.
+  # Nextion thermostat page slider. Match the original working C++ code, which
+  # reads the fully qualified page variable: three.Slider0.val.
   - platform: nextion
     id: nextion_slider_sensor
     name: "Nextion Slider"
     nextion_id: gazebo_nextion
-    variable_name: Slider0
+    variable_name: three.Slider0.val
     internal: true
     update_interval: never
     on_value:
@@ -19,13 +19,13 @@ sensor:
         - lambda: |-
             int slider_val = (int) round(x);
             if (slider_val < 15 || slider_val > 25) {
-              ESP_LOGW("NEXTION_SLIDER", "Ignoring out-of-range Slider0 value: %d", slider_val);
+              ESP_LOGW("NEXTION_SLIDER", "Ignoring out-of-range three.Slider0.val value: %d", slider_val);
               return;
             }
 
             id(nextion_slider_value) = slider_val;
             float desired_temp = (float) slider_val;
-            ESP_LOGI("NEXTION_SLIDER", "Slider0.val=%d -> target %.1f°C", slider_val, desired_temp);
+            ESP_LOGI("NEXTION_SLIDER", "three.Slider0.val=%d -> target %.1f°C", slider_val, desired_temp);
 
             auto call = id(gazebo_thermostat).make_call();
             call.set_target_temperature(desired_temp);

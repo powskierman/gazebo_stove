@@ -9,6 +9,7 @@ script:
   - id: read_nextion_slider
     then:
       - delay: 100ms  # Small delay for Nextion to process
+      - lambda: 'id(nextion_slider_read_pending) = true;'
       - component.update: nextion_slider_sensor
 
   # Initialize Nextion display on boot

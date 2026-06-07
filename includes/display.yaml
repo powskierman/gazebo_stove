@@ -11,8 +11,9 @@ uart:
   - id: uart_nextion
     tx_pin: GPIO17
     rx_pin: GPIO16
-    # gazeboV4.HMI sets baud=115200 in page zero preinitialize.
-    baud_rate: 115200
+    # Match the original working Arduino/Blynk implementation:
+    # Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); myNex.begin(9600).
+    baud_rate: 9600
     # UART Debug - Parses Nextion HMI custom status packets
     # --------------------------------------------------------
     # Protocol: 23 02 54 00/01, sent by gazeboV4.HMI using printh.
@@ -23,6 +24,7 @@ uart:
       dummy_receiver: false
       after:
         bytes: 4
+        timeout: 50ms
       sequence:
         - lambda: |-
             // Log the raw data
@@ -37,6 +39,62 @@ uart:
                 }
                 break;
               }
+            }
+
+            if (id(nextion_slider_read_pending) && bytes.size() >= 4 && bytes[0] == 0x71) {
+              // Numeric response to "get three.Slider0.val". For this 15-25°C
+              // slider, the low byte is sufficient even when the 4th numeric byte
+              // arrives in the next UART debug chunk with the terminator bytes.
+              int slider_val = bytes[1] | (bytes[2] << 8) | (bytes[3] << 16);
+              id(nextion_slider_read_pending) = false;
+
+              if (slider_val < 15 || slider_val > 25) {
+                ESP_LOGW("NEXTION_SLIDER", "Ignoring out-of-range numeric Slider0 value: %d", slider_val);
+              } else {
+                id(nextion_slider_value) = slider_val;
+                float desired_temp = (float) slider_val;
+                ESP_LOGI("NEXTION_SLIDER", "Numeric three.Slider0.val=%d -> target %.1f°C", slider_val, desired_temp);
+
+                auto call = id(gazebo_thermostat).make_call();
+                call.set_target_temperature(desired_temp);
+                call.perform();
+              }
+            }
+
+            // gazeboV4.1.HMI sends: printh 91; prints Slider0.val,0
+            // Accept that direct-value form as well as the EasyNex-style trigger.
+            for (size_t i = 0; i < bytes.size(); i++) {
+              if (bytes[i] != 0x91) {
+                continue;
+              }
+
+              int slider_val = 0;
+              bool found_digit = false;
+              for (size_t j = i + 1; j < bytes.size(); j++) {
+                if (bytes[j] < '0' || bytes[j] > '9') {
+                  break;
+                }
+                found_digit = true;
+                slider_val = (slider_val * 10) + (bytes[j] - '0');
+              }
+
+              if (!found_digit) {
+                ESP_LOGW("NEXTION_SLIDER", "Direct slider packet 0x91 received without digits");
+                break;
+              }
+              if (slider_val < 15 || slider_val > 25) {
+                ESP_LOGW("NEXTION_SLIDER", "Ignoring out-of-range direct Slider0 value: %d", slider_val);
+                break;
+              }
+
+              id(nextion_slider_value) = slider_val;
+              float desired_temp = (float) slider_val;
+              ESP_LOGI("NEXTION_SLIDER", "Direct Slider0 value=%d -> target %.1f°C", slider_val, desired_temp);
+
+              auto call = id(gazebo_thermostat).make_call();
+              call.set_target_temperature(desired_temp);
+              call.perform();
+              break;
             }
 
 # ============================================================================
