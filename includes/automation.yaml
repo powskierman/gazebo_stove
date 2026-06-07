@@ -32,8 +32,8 @@ script:
           id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
           id(gazebo_nextion).send_command("thsp=0");  // Disable no-touch sleep
           id(gazebo_nextion).send_command("cls 0x0000");
-          id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
-          ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
+          id(gazebo_nextion).send_command("page zero"); // Force intended home page by name
+          ESP_LOGI("NEXTION_INIT", "Display cleared and switched to page 'zero'");
 
           // Variable writes are disabled until the flashed TFT component
           // map is confirmed. The current panel rejects temp.val.
