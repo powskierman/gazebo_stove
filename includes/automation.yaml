@@ -9,98 +9,37 @@ script:
   - id: read_nextion_slider
     then:
       - delay: 100ms  # Small delay for Nextion to process
-      - lambda: |-
-          // Send a command to request Slider0 value
-          // The response will come via UART and be logged
-          // For now, we use the touch event component_id to estimate the value
-          // Full bi-directional communication requires Nextion to send data proactively
-          
-          // Get the stored slider value from our global
-          int slider_val = (int)id(nextion_slider_value);
-          if (slider_val >= 0 && slider_val <= 100) {
-            // Slider-to-temperature conversion (see display.yaml for formula documentation)
-            // Formula: temp = 15 + (slider / 100) * 15
-            float desired_temp = 15.0 + ((float)slider_val / 100.0) * 15.0;
-            ESP_LOGI("NEXTION_SLIDER", "Slider value: %d -> Temperature: %.1f°C", slider_val, desired_temp);
-            
-            // Update thermostat target temperature
-            auto call = id(gazebo_thermostat).make_call();
-            call.set_target_temperature(desired_temp);
-            call.perform();
-            
-            // Update n0 display immediately (desired temp on left)
-            id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)desired_temp);
-          }
+      - component.update: nextion_slider_sensor
 
   # Initialize Nextion display on boot
   - id: init_nextion
     then:
       - delay: 30s  # Wait for ESP32 and Nextion to settle
       - logger.log: "Initializing Nextion display..."
-      # Wait for display to be awake (up to 60 seconds)
       - lambda: |-
-          if (id(nextion_sleeping)) {
-            ESP_LOGI("NEXTION_INIT", "Display is sleeping, waiting for wake...");
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
+            return;
           }
-      - wait_until:
-          condition:
-            lambda: 'return !id(nextion_sleeping);'
-          timeout: 60s
-      - if:
-          condition:
-            lambda: 'return id(nextion_sleeping);'
-          then:
-            - logger.log:
-                level: WARN
-                format: "Display still sleeping after 60s - deferring init to on_wake"
-          else:
-            - lambda: |-
-                if (id(gazebo_nextion).is_failed() == false) {
-                  id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
-                  id(gazebo_nextion).send_command("cls 0x0000");
-                  id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
-                  ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
 
-                  // ============================================================
-                  // Page 0: Update with initial values
-                  // ============================================================
-                  // Temperature
-                  // Temperature (Page 0) - Using AcuRite
-                  if (!isnan(id(ha_acurite_temp).state)) {
-                    id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(ha_acurite_temp).state);
-                  }
-                  
-                  // Humidity/Precip (Page 0) - Using AcuRite
-                  if (!isnan(id(ha_acurite_humidity).state)) {
-                    id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(ha_acurite_humidity).state);
-                  }
+          if (id(nextion_sleeping)) {
+            ESP_LOGI("NEXTION_INIT", "Display is sleeping - waking before init");
+            id(gazebo_nextion).sleep(false);
+            id(nextion_sleeping) = false;
+          }
 
-                  // ============================================================
-                  // Page 3: Initialize temperature controls
-                  // ============================================================
-                  float target = id(gazebo_thermostat).target_temperature;
-                  // n0: desired temperature (left side)
-                  id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
-                  // n1: actual temperature (right side)
-                  id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
-                  // Temperature-to-slider conversion (see display.yaml for formula documentation)
-                  // Formula: slider = ((temp - 15) / 15) * 100
-                  int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
-                  if (slider_val < 0) slider_val = 0;
-                  if (slider_val > 100) slider_val = 100;
-                  id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
+          id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
+          id(gazebo_nextion).send_command("thsp=0");  // Disable no-touch sleep
+          id(gazebo_nextion).send_command("cls 0x0000");
+          id(gazebo_nextion).send_command("page 0"); // Force Page 0 (ID 0)
+          ESP_LOGI("NEXTION_INIT", "Display cleared and switched to Page 0");
 
-                  // Mark Nextion as ready for other components to send
-                  id(nextion_ready) = true;
-                  ESP_LOGI("NEXTION_INIT", "Display initialization complete (target=%.1f, slider=%d)", target, slider_val);
-                } else {
-                  ESP_LOGE("NEXTION_INIT", "Nextion display failed - cannot initialize");
-                }
-            # Update weather displays immediately on boot
-            - delay: 2s  # Brief delay for HA sensors to connect
-            - script.execute: update_nextion_hourly
-            - script.execute: update_nextion_daily
-            - logger.log: "Weather data sent to Pages 1 and 2"
+          // Variable writes are disabled until the flashed TFT component
+          // map is confirmed. The current panel rejects temp.val.
+
+          // Mark Nextion as ready for other components to send
+          id(nextion_ready) = true;
+          ESP_LOGI("NEXTION_INIT", "Display initialization complete");
 
 
   # Refresh all Nextion pages when display wakes from sleep
@@ -118,44 +57,11 @@ script:
           if (!id(nextion_ready)) {
             ESP_LOGI("NEXTION_WAKE", "Display was sleeping on boot - performing deferred init");
             id(gazebo_nextion).send_command("bkcmd=3"); // Enable return data
+            id(gazebo_nextion).send_command("thsp=0");  // Disable no-touch sleep
             id(nextion_ready) = true;
           }
           
-          ESP_LOGI("NEXTION_WAKE", "Refreshing all pages after wake...");
-          
-          // ============================================================
-          // Page 0: Current conditions (AcuRite)
-          // ============================================================
-          if (!isnan(id(ha_acurite_temp).state)) {
-            id(gazebo_nextion).send_command_printf("zero.temp.val=%d", (int)id(ha_acurite_temp).state);
-          }
-          if (!isnan(id(ha_acurite_humidity).state)) {
-            id(gazebo_nextion).send_command_printf("zero.precip.val=%d", (int)id(ha_acurite_humidity).state);
-          }
-          
-          // ============================================================
-          // Page 3: Thermostat controls
-          // ============================================================
-          float target = id(gazebo_thermostat).target_temperature;
-          id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
-          id(gazebo_nextion).send_command_printf("three.n1.val=%d", (int)id(gazebo_temp).state);
-          
-          // Update slider position
-          int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
-          if (slider_val < 0) slider_val = 0;
-          if (slider_val > 100) slider_val = 100;
-          id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
-          
-          ESP_LOGI("NEXTION_WAKE", "Page 0 and 3 refreshed (temp=%.1f, target=%.1f)", 
-                   id(gazebo_temp).state, target);
-      
-      # Small delay to let page 0/3 commands complete
-      - delay: 100ms
-      # Update weather pages (1 and 2)
-      - script.execute: update_nextion_hourly
-      - delay: 100ms
-      - script.execute: update_nextion_daily
-      - logger.log: "All Nextion pages refreshed after wake"
+          ESP_LOGI("NEXTION_WAKE", "Display wake refresh skipped; variable writes disabled");
 
 
 
@@ -169,13 +75,15 @@ script:
     then:
       # Check priorities and set action flags
       - lambda: |-
-          bool schedule_standby = (id(presence_mode).state == "away");
+          bool schedule_standby = (id(presence_mode).current_option().compare("away") == 0);
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
+          bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
           float pwm_output = id(heater_output_level);
 
-          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, EmergencyHeat=%s, ScheduleStandby=%s, PID_Output=%.1f%%",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, EmergencyHeat=%s, ScheduleStandby=%s, PID_Output=%.1f%%",
                    manual_stop ? "true" : "false",
+                   sensor_fault ? "true" : "false",
                    manual_run ? "true" : "false",
                    schedule_standby ? "YES" : "NO",
                    pwm_output * 100.0);
@@ -188,6 +96,14 @@ script:
             id(heating_status).publish_state("Forced Off");
             id(heating_action) = 1;
             ESP_LOGI("PRIORITY", "Force Off active (Priority 1 - HIGHEST)");
+            return;
+          }
+
+          // Sensor fault: fail safe with heat off.
+          if (sensor_fault) {
+            id(heating_status).publish_state("Sensor Fault");
+            id(heating_action) = 1;
+            ESP_LOGW("PRIORITY", "Sensor fault active - forcing heat OFF");
             return;
           }
 
@@ -247,6 +163,9 @@ script:
           condition:
             lambda: 'return id(heating_action) == 1;'  # Force Off
           then:
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "OFF"
             - output.set_level:
                 id: heater_pwm
                 level: 0.0
@@ -331,21 +250,12 @@ interval:
                   - script.execute: disable_manual_run
 
   # Periodic Display Refresh (every 5s)
-  # Updates Page 0 temperature and humidity values
+  # Variable writes are disabled until the flashed TFT component map is confirmed.
   - interval: 5s
     then:
       - lambda: |-
-          if (id(gazebo_nextion).is_failed() == false) {
-             // Refresh Temperature on Page 0 (AcuRite)
-             if (!isnan(id(ha_acurite_temp).state)) {
-               int t = (int)id(ha_acurite_temp).state;
-               id(gazebo_nextion).send_command_printf("zero.temp.val=%d", t);
-             }
-             // Refresh Humidity on Page 0 (AcuRite)
-             if (!isnan(id(ha_acurite_humidity).state)) {
-               int h = (int)id(ha_acurite_humidity).state;
-               id(gazebo_nextion).send_command_printf("zero.precip.val=%d", h);
-             }
+          if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
+            ESP_LOGD("NEXTION", "Periodic display variable refresh skipped");
           }
 
   # Periodic heating evaluation every 30 seconds
@@ -405,7 +315,7 @@ interval:
 
                 // Update presence mode if needed (or if Climate Mode is out of sync)
                 std::string desired_mode = should_be_home ? "home" : "away";
-                std::string current_mode = id(presence_mode).state;
+                std::string current_mode = id(presence_mode).current_option().str();
                 
                 bool climate_mismatch = false;
                 if (desired_mode == "away") {
