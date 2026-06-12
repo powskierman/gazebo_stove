@@ -23,6 +23,7 @@ esphome:
             wifi.connected:
           timeout: 30s
       - logger.log: "WiFi connected, initializing components"
+      - script.execute: apply_thermostat_tuning
       - script.execute: init_nextion
 
 # ============================================================================

@@ -4,6 +4,38 @@
 # Scripts for heating control, display initialization, and system management
 
 script:
+  # Apply restored Home Assistant tuning values to runtime controller objects.
+  - id: apply_thermostat_tuning
+    then:
+      - lambda: |-
+          if (!isnan(id(pid_kp).state)) {
+            id(gazebo_thermostat).set_kp(id(pid_kp).state);
+          }
+          if (!isnan(id(pid_ki).state)) {
+            id(gazebo_thermostat).set_ki(id(pid_ki).state);
+          }
+          if (!isnan(id(pid_kd).state)) {
+            id(gazebo_thermostat).set_kd(id(pid_kd).state);
+          }
+          if (!isnan(id(pid_deadband_low).state)) {
+            id(gazebo_thermostat).set_threshold_low(id(pid_deadband_low).state);
+          }
+          if (!isnan(id(pid_deadband_high).state)) {
+            id(gazebo_thermostat).set_threshold_high(id(pid_deadband_high).state);
+          }
+          if (!isnan(id(heater_pwm_period).state)) {
+            unsigned int period_ms = (unsigned int) roundf(id(heater_pwm_period).state * 1000.0f);
+            id(heater_pwm).set_period(period_ms);
+            id(heater_pwm).restart_cycle();
+          }
+          ESP_LOGI("PID_TUNING", "Applied runtime tuning: Kp=%.3f Ki=%.4f Kd=%.1f Low=%.1f°C High=%.1f°C PWM=%.0fs",
+                   id(pid_kp).state,
+                   id(pid_ki).state,
+                   id(pid_kd).state,
+                   id(pid_deadband_low).state,
+                   id(pid_deadband_high).state,
+                   id(heater_pwm_period).state);
+
   # Read Nextion Slider0 value and update thermostat
   # This script is called when touch is released on Page 3
   - id: read_nextion_slider
