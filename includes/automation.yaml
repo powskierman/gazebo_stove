@@ -12,6 +12,64 @@ script:
       - lambda: 'id(nextion_slider_read_pending) = true;'
       - component.update: nextion_slider_sensor
 
+  # Refresh Page 3 thermostat values.
+  - id: update_nextion_thermostat
+    then:
+      - lambda: |-
+          if (!id(nextion_ready)) {
+            ESP_LOGD("NEXTION_THERMOSTAT", "Display not ready; skipping thermostat refresh");
+            return;
+          }
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGW("NEXTION_THERMOSTAT", "Display is_failed=true; skipping thermostat refresh");
+            return;
+          }
+
+          if (!isnan(id(gazebo_temp).state) && id(gazebo_temp).state > -39.0) {
+            int current_temp = (int) round(id(gazebo_temp).state);
+            id(gazebo_nextion).send_command_printf("three.n1.val=%d", current_temp);
+            ESP_LOGI("NEXTION_THERMOSTAT", "Refreshed three.n1.val=%d", current_temp);
+          } else {
+            ESP_LOGW("NEXTION_THERMOSTAT", "Gazebo temperature invalid; three.n1 not refreshed");
+          }
+
+          float target = id(gazebo_thermostat).target_temperature;
+          if (!isnan(target)) {
+            int target_temp = (int) round(target);
+            id(gazebo_nextion).send_command_printf("three.n0.val=%d", target_temp);
+            id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", target_temp);
+            ESP_LOGI("NEXTION_THERMOSTAT", "Refreshed three.n0.val=%d and three.Slider0.val=%d", target_temp, target_temp);
+          } else {
+            ESP_LOGW("NEXTION_THERMOSTAT", "Target temperature invalid; three.n0 not refreshed");
+          }
+
+  # Refresh Page 0 current outdoor weather values.
+  - id: update_nextion_current_weather
+    then:
+      - lambda: |-
+          if (!id(nextion_ready)) {
+            ESP_LOGD("NEXTION_NHMETEO", "Display not ready; skipping current weather refresh");
+            return;
+          }
+          if (id(gazebo_nextion).is_failed()) {
+            ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; skipping current weather refresh");
+            return;
+          }
+
+          if (!isnan(id(ha_nhmeteo_temp).state)) {
+            id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+            ESP_LOGI("NEXTION_NHMETEO", "Refreshed page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+          } else {
+            ESP_LOGW("NEXTION_NHMETEO", "NHMeteo temperature is NaN; page zero temp not refreshed");
+          }
+
+          if (!isnan(id(ha_nhmeteo_humidity).state)) {
+            id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(id(ha_nhmeteo_humidity).state));
+            ESP_LOGI("NEXTION_NHMETEO", "Refreshed page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
+          } else {
+            ESP_LOGW("NEXTION_NHMETEO", "NHMeteo humidity is NaN; page zero precip not refreshed");
+          }
+
   # Initialize Nextion display on boot
   - id: init_nextion
     then:
@@ -51,6 +109,10 @@ script:
           }
 
           ESP_LOGI("NEXTION_INIT", "Display initialization complete");
+      - script.execute: update_nextion_current_weather
+      - script.execute: update_nextion_thermostat
+      - script.execute: update_nextion_hourly
+      - script.execute: update_nextion_daily
 
 
   # Refresh all Nextion pages when display wakes from sleep
@@ -72,7 +134,11 @@ script:
             id(nextion_ready) = true;
           }
           
-          ESP_LOGI("NEXTION_WAKE", "Display wake refresh skipped; variable writes disabled");
+          ESP_LOGI("NEXTION_WAKE", "Refreshing Nextion display values");
+      - script.execute: update_nextion_current_weather
+      - script.execute: update_nextion_thermostat
+      - script.execute: update_nextion_hourly
+      - script.execute: update_nextion_daily
 
 
 
@@ -86,7 +152,7 @@ script:
     then:
       # Check priorities and set action flags
       - lambda: |-
-          bool schedule_standby = (id(presence_mode).current_option().compare("away") == 0);
+          bool schedule_standby = (id(presence_mode).state.compare("away") == 0);
           bool manual_stop = id(manual_stop_active);
           bool manual_run = id(manual_run_active);
           bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
@@ -326,7 +392,7 @@ interval:
 
                 // Update presence mode if needed (or if Climate Mode is out of sync)
                 std::string desired_mode = should_be_home ? "home" : "away";
-                std::string current_mode = id(presence_mode).current_option().str();
+                std::string current_mode = id(presence_mode).state;
                 
                 bool climate_mismatch = false;
                 if (desired_mode == "away") {

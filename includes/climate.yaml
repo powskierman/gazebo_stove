@@ -68,9 +68,7 @@ climate:
 
     # Update Nextion display when target temperature changes
     on_control:
-      - lambda: |-
-          // Suppressed until the flashed Nextion TFT is confirmed to expose
-          // n1/Slider0. Keeping this quiet avoids invalid-variable UART spam.
+      - script.execute: update_nextion_thermostat
 
 # ============================================================================
 # IMPLEMENTATION NOTES

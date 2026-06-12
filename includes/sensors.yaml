@@ -82,6 +82,7 @@ sensor:
                     ESP_LOGD("CLIMATE_SYNC", "Climate state republished with temperature: %.1f°C", x);
                   }
               - script.execute: manage_heating
+              - script.execute: update_nextion_thermostat
         - lambda: |-
             if (isnan(x) || x <= -39.0) {
               ESP_LOGW("NEXTION", "Skipping invalid gazebo temp %.1f", x);
