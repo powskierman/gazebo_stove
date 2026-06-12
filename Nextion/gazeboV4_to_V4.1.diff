@@ -1,0 +1,726 @@
+diff --color -ru text/gazeboV4/one.txt text/gazeboV4.1/one.txt
+--- text/gazeboV4/one.txt	2026-06-08 15:43:54
++++ text/gazeboV4.1/one.txt	2026-06-08 15:44:13
+@@ -1,15 +1,14 @@
+ Page one
+     Attributes
+-        ID                                  : 0
+-        Scope                               : local
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Locked                              : no
+-        Swide up page ID                    : disabled
+-        Swide down page ID                  : disabled
+-        Swide left page ID                  : disabled
+-        Swide right page ID                 : disabled
++        ID                 : 0
++        Scope              : local
++        Dragging           : 0
++        Send Component ID  : disabled
++        Locked             : no
++        Swide up page ID   : disabled
++        Swide down page ID : disabled
++        Swide left page ID : disabled
++        Swide right page ID: disabled
+     
+     Events
+         Touch Release Event
+@@ -23,280 +22,251 @@
+     
+ Number fl0
+     Attributes
+-        ID                                  : 9
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 11
++        ID                 : 9
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 111
+     
+ Number fl1
+     Attributes
+-        ID                                  : 10
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 22
++        ID                 : 10
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 222
+     
+ Number fl2
+     Attributes
+-        ID                                  : 11
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 33
++        ID                 : 11
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 333
+     
+ Number fl3
+     Attributes
+-        ID                                  : 12
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 44
++        ID                 : 12
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 444
+     
+ Number fl4
+     Attributes
+-        ID                                  : 13
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 55
++        ID                 : 13
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 555
+     
+ Number fl5
+     Attributes
+-        ID                                  : 14
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 66
++        ID                 : 14
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 666
+     
+ Number fl6
+     Attributes
+-        ID                                  : 15
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 77
++        ID                 : 15
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 777
+     
+ Number rain0
+     Attributes
+-        ID                                  : 16
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 16
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain1
+     Attributes
+-        ID                                  : 17
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 17
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain2
+     Attributes
+-        ID                                  : 18
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 18
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain3
+     Attributes
+-        ID                                  : 19
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 19
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain4
+     Attributes
+-        ID                                  : 20
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 20
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain5
+     Attributes
+-        ID                                  : 21
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 21
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number rain6
+     Attributes
+-        ID                                  : 22
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 123
++        ID                 : 22
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 123
+     
+ Number dt0
+     Attributes
+-        ID                                  : 25
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 25
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt1
+     Attributes
+-        ID                                  : 26
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 26
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt2
+     Attributes
+-        ID                                  : 27
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 27
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt3
+     Attributes
+-        ID                                  : 28
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 28
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt4
+     Attributes
+-        ID                                  : 29
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 29
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt5
+     Attributes
+-        ID                                  : 30
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 30
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Number dt6
+     Attributes
+-        ID                                  : 31
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 31
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Picture wxIcon0
+     Attributes
+-        ID                                  : 2
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 2
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon1
+     Attributes
+-        ID                                  : 3
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 3
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon2
+     Attributes
+-        ID                                  : 4
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 4
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon3
+     Attributes
+-        ID                                  : 5
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 5
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon4
+     Attributes
+-        ID                                  : 6
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 6
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon5
+     Attributes
+-        ID                                  : 7
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 7
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Picture wxIcon6
+     Attributes
+-        ID                                  : 8
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
++        ID               : 8
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
+     
+ Button b0
+     Attributes
+-        ID                                  : 23
+-        Scope                               : local
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        State                               : unpressed
+-        Text                                : 
+-        Max. Text Size                      : 10
++        ID               : 23
++        Scope            : local
++        Dragging         : 0
++        Send Component ID: disabled
++        State            : unpressed
++        Text             : 
++        Max. Text Size   : 10
+     
+     Events
+         Touch Press Event
+@@ -304,14 +274,13 @@
+         
+ Button b1
+     Attributes
+-        ID                                  : 24
+-        Scope                               : local
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        State                               : unpressed
+-        Text                                : 
+-        Max. Text Size                      : 10
++        ID               : 24
++        Scope            : local
++        Dragging         : 0
++        Send Component ID: disabled
++        State            : unpressed
++        Text             : 
++        Max. Text Size   : 10
+     
+     Events
+         Touch Press Event
+diff --color -ru text/gazeboV4/three.txt text/gazeboV4.1/three.txt
+--- text/gazeboV4/three.txt	2026-06-08 15:43:54
++++ text/gazeboV4.1/three.txt	2026-06-08 15:44:13
+@@ -1,61 +1,60 @@
+ Page three
+     Attributes
+-        ID                                  : 0
+-        Scope                               : local
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Locked                              : no
+-        Swide up page ID                    : disabled
+-        Swide down page ID                  : disabled
+-        Swide left page ID                  : disabled
+-        Swide right page ID                 : disabled
++        ID                 : 0
++        Scope              : local
++        Dragging           : 0
++        Send Component ID  : disabled
++        Locked             : no
++        Swide up page ID   : disabled
++        Swide down page ID : disabled
++        Swide left page ID : disabled
++        Swide right page ID: disabled
+     
+ Number n0
+     Attributes
+-        ID                                  : 2
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 99
++        ID                 : 2
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 99
+     
+ Number n1
+     Attributes
+-        ID                                  : 3
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Associated Keyboard                 : none
+-        Value                               : 88
++        ID                 : 3
++        Scope              : global
++        Dragging           : 0
++        Send Component ID  : disabled
++        Associated Keyboard: none
++        Value              : 88
+     
+ Slider Slider0
+     Attributes
+-        ID                                  : 4
+-        Scope                               : global
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        Position                            : 20
+-        Upper range limit                   : 25
+-        Lower range limit                   : 15
++        ID               : 4
++        Scope            : global
++        Dragging         : 0
++        Send Component ID: disabled
++        Position         : 20
++        Upper range limit: 100
++        Lower range limit: 0
+     
+     Events
+         Touch Release Event
+-            printh 23 02 54 00
++            sys0=Slider0.val*15+50
++            sys0=sys0/100+15
++            n0.val=sys0
++            printh 91
++            prints Slider0.val,0
+         
+ Button b2
+     Attributes
+-        ID                                  : 1
+-        Scope                               : local
+-        Dragging                            : 0
+-        Disable release event after dragging: 0
+-        Send Component ID                   : disabled
+-        State                               : unpressed
+-        Text                                : 
+-        Max. Text Size                      : 10
++        ID               : 1
++        Scope            : local
++        Dragging         : 0
++        Send Component ID: disabled
++        State            : unpressed
++        Text             : 
++        Max. Text Size   : 10
+     
+     Events
+         Touch Press Event
+diff --color -ru text/gazeboV4/two.txt text/gazeboV4.1/two.txt
+--- text/gazeboV4/two.txt	2026-06-08 15:43:54
++++ text/gazeboV4.1/two.txt	2026-06-08 15:44:13
+@@ -27,7 +27,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 11
++        Value              : 111
+     
+ Number temp1
+     Attributes
+@@ -36,7 +36,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 22
++        Value              : 222
+     
+ Number temp2
+     Attributes
+@@ -45,7 +45,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 33
++        Value              : 333
+     
+ Number temp3
+     Attributes
+@@ -54,7 +54,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 44
++        Value              : 444
+     
+ Number temp4
+     Attributes
+@@ -63,7 +63,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 55
++        Value              : 555
+     
+ Number temp5
+     Attributes
+@@ -72,7 +72,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 66
++        Value              : 666
+     
+ Number temp6
+     Attributes
+@@ -81,7 +81,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 77
++        Value              : 777
+     
+ Number precip0
+     Attributes
+@@ -90,7 +90,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 88
++        Value              : 888
+     
+ Number precip1
+     Attributes
+@@ -99,7 +99,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 0
++        Value              : 888
+     
+ Number precip2
+     Attributes
+@@ -108,7 +108,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 0
++        Value              : 888
+     
+ Number precip3
+     Attributes
+@@ -117,7 +117,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 0
++        Value              : 888
+     
+ Number precip4
+     Attributes
+@@ -126,7 +126,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 0
++        Value              : 888
+     
+ Number precip5
+     Attributes
+@@ -135,7 +135,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 0
++        Value              : 888
+     
+ Number precip6
+     Attributes
+@@ -144,7 +144,7 @@
+         Dragging           : 0
+         Send Component ID  : disabled
+         Associated Keyboard: none
+-        Value              : 55
++        Value              : 888
+     
+ Number dt10
+     Attributes

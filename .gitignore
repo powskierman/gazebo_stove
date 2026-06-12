@@ -13,4 +13,5 @@ esphome/build/
 .esphome/external_components/
 .esphome/.esphome_cache/
 .venv/
+.venv-esphome/
 node_modules/
