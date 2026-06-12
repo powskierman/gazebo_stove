@@ -21,15 +21,6 @@ output:
         - lambda: 'id(heater_output_level) = 0.0;'
         - light.turn_off: status_light
 
-  # Dummy cool output for PID autotuning (does nothing - we only heat)
-  - platform: template
-    id: dummy_cool
-    type: float
-    write_action:
-      - lambda: |-
-          // Dummy output - cooling not available for propane stove
-          ESP_LOGD("COOL", "Cool output requested (ignored): %.1f%%", state * 100);
-
 # ============================================================================
 # PID CLIMATE CONTROLLER
 # ============================================================================
@@ -40,7 +31,6 @@ climate:
     sensor: gazebo_temp
     default_target_temperature: 20
     heat_output: heater_pwm
-    cool_output: dummy_cool  # Dummy for autotuning - enables AUTO mode
     
     # PID Control Parameters
     # Conservative values for propane stove heating
@@ -74,7 +64,7 @@ climate:
 # IMPLEMENTATION NOTES
 # ============================================================================
 # The PID climate controller provides:
-# 1. Proportional-Integral-Derivative temperature control
+# 1. Proportional-Integral-Derivative heat-only temperature control
 # 2. Slow PWM output for binary relay (2-minute cycle)
 # 3. Deadband to prevent rapid cycling near setpoint
 # 4. Smooth output averaging for stable operation
