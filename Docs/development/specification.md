@@ -293,7 +293,7 @@ GazeboStove is a smart heating control system for an outdoor gazebo with a propa
 #### Number Entities (Configuration)
 - **Desired Temperature Setpoint**: range 5-35°C, step 0.5°C
 - **Heating Hysteresis**: range 1-5°C, step 0.5°C (deadband for stove ON/OFF control)
-- **Temperature Offset**: range -5 to +5°C, step 0.1°C
+- **Temperature Offset**: range -10 to +10°C, step 0.1°C
 
 #### Select/Mode Entities
 - **Presence Mode**: "home" | "away" (Home: allow thermostat control, Away: stove off)

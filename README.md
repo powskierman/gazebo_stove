@@ -128,7 +128,7 @@ Each priority level triggers only when its state changes, not continuously.
 - 10-second update interval with filtering
 - Delta-rate limiting (max 1°C per reading)
 - Malfunction detection and recovery
-- Temperature offset calibration (-5 to +5°C)
+- Temperature offset calibration (-10 to +10°C)
 
 ---
 
@@ -185,7 +185,7 @@ away_mode_hour: 22, away_mode_minute: 0 (10:00 PM)
 schedule_enabled: ON
 
 # Sensor Calibration
-temperature_offset: 0°C (adjustable -5 to +5°C)
+temperature_offset: -6.0°C (adjustable -10 to +10°C)
 ```
 
 ### Updating Without Home Assistant

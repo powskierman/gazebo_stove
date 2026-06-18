@@ -56,7 +56,7 @@ entities:
     icon: mdi:power-off
   - type: divider
   - entity: number.gazebo_stove_temperature_offset
-    name: Temperature Offset (-5 to +5°C)
+    name: Temperature Offset (-10 to +10°C)
     icon: mdi:pencil
   - entity: number.gazebo_stove_heating_hysteresis
     name: Heating Hysteresis

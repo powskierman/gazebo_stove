@@ -21,15 +21,6 @@ output:
         - lambda: 'id(heater_output_level) = 0.0;'
         - light.turn_off: status_light
 
-  # Dummy cool output for PID autotuning (does nothing - we only heat)
-  - platform: template
-    id: dummy_cool
-    type: float
-    write_action:
-      - lambda: |-
-          // Dummy output - cooling not available for propane stove
-          ESP_LOGD("COOL", "Cool output requested (ignored): %.1f%%", state * 100);
-
 # ============================================================================
 # PID CLIMATE CONTROLLER
 # ============================================================================
@@ -40,7 +31,6 @@ climate:
     sensor: gazebo_temp
     default_target_temperature: 20
     heat_output: heater_pwm
-    cool_output: dummy_cool  # Dummy for autotuning - enables AUTO mode
     
     # PID Control Parameters
     # Conservative values for propane stove heating
@@ -49,7 +39,9 @@ climate:
       kp: 5.0      # Proportional - moderate response to error
       ki: 0.003    # Integral - slow accumulation to fix steady-state error
       kd: 100.0    # Derivative - dampen oscillation, prevent overshoot
-      output_averaging_samples: 5  # Smooth output
+      # React to setpoint changes on the next sensor update. Averaging five
+      # outputs retained the old demand for about 50 seconds.
+      output_averaging_samples: 1
     
     # Deadband for stability - prevents oscillation near setpoint
     deadband_parameters:
@@ -58,7 +50,8 @@ climate:
       kp_multiplier: 0.0      # No proportional response in deadband
       ki_multiplier: 0.05     # Slow integral accumulation (5%)
       kd_multiplier: 0.0      # No derivative in deadband
-      deadband_output_averaging_samples: 15  # Extra smoothing in deadband
+      # Keep modest smoothing near the target without adding minutes of lag.
+      deadband_output_averaging_samples: 3
     
     # Visual settings
     visual:
@@ -68,24 +61,13 @@ climate:
 
     # Update Nextion display when target temperature changes
     on_control:
-      - lambda: |-
-          if (id(nextion_ready) && id(gazebo_nextion).is_failed() == false) {
-            float target = id(gazebo_thermostat).target_temperature;
-            // n0: desired temperature (left side)
-            id(gazebo_nextion).send_command_printf("three.n0.val=%d", (int)target);
-            // Slider0: map 15-30°C to 0-100 (see display.yaml for formula)
-            int slider_val = (int)(((target - 15.0) / 15.0) * 100.0);
-            if (slider_val < 0) slider_val = 0;
-            if (slider_val > 100) slider_val = 100;
-            id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
-            ESP_LOGD("NEXTION_DEBUG", "Updated n0=%d, Slider0=%d", (int)target, slider_val);
-          }
+      - script.execute: update_nextion_thermostat
 
 # ============================================================================
 # IMPLEMENTATION NOTES
 # ============================================================================
 # The PID climate controller provides:
-# 1. Proportional-Integral-Derivative temperature control
+# 1. Proportional-Integral-Derivative heat-only temperature control
 # 2. Slow PWM output for binary relay (2-minute cycle)
 # 3. Deadband to prevent rapid cycling near setpoint
 # 4. Smooth output averaging for stable operation

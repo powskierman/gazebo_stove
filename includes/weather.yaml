@@ -309,46 +309,46 @@ script:
           };
 
           // Hour 0
-          id(gazebo_nextion).send_command_printf("one.dt0.val=%d", current_hour);
-          send_if_valid("one.fl0.val", id(ha_hour_0_feels_like).state);
-          send_if_valid("one.rain0.val", id(ha_hour_0_precipitation).state);
-          send_if_valid("one.wxIcon0.pic", wmo_to_icon((int)id(ha_hour_0_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt0.val=%d", current_hour);
+          send_if_valid("fl0.val", id(ha_hour_0_feels_like).state);
+          send_if_valid("rain0.val", id(ha_hour_0_precipitation).state);
+          send_if_valid("wxIcon0.pic", wmo_to_icon((int)id(ha_hour_0_weather_code).state));
           
           // Hour 1
-          id(gazebo_nextion).send_command_printf("one.dt1.val=%d", (current_hour + 1) % 24);
-          send_if_valid("one.fl1.val", id(ha_hour_1_feels_like).state);
-          send_if_valid("one.rain1.val", id(ha_hour_1_precipitation).state);
-          send_if_valid("one.wxIcon1.pic", wmo_to_icon((int)id(ha_hour_1_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt1.val=%d", (current_hour + 1) % 24);
+          send_if_valid("fl1.val", id(ha_hour_1_feels_like).state);
+          send_if_valid("rain1.val", id(ha_hour_1_precipitation).state);
+          send_if_valid("wxIcon1.pic", wmo_to_icon((int)id(ha_hour_1_weather_code).state));
           
           // Hour 2
-          id(gazebo_nextion).send_command_printf("one.dt2.val=%d", (current_hour + 2) % 24);
-          send_if_valid("one.fl2.val", id(ha_hour_2_feels_like).state);
-          send_if_valid("one.rain2.val", id(ha_hour_2_precipitation).state);
-          send_if_valid("one.wxIcon2.pic", wmo_to_icon((int)id(ha_hour_2_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt2.val=%d", (current_hour + 2) % 24);
+          send_if_valid("fl2.val", id(ha_hour_2_feels_like).state);
+          send_if_valid("rain2.val", id(ha_hour_2_precipitation).state);
+          send_if_valid("wxIcon2.pic", wmo_to_icon((int)id(ha_hour_2_weather_code).state));
           
           // Hour 3
-          id(gazebo_nextion).send_command_printf("one.dt3.val=%d", (current_hour + 3) % 24);
-          send_if_valid("one.fl3.val", id(ha_hour_3_feels_like).state);
-          send_if_valid("one.rain3.val", id(ha_hour_3_precipitation).state);
-          send_if_valid("one.wxIcon3.pic", wmo_to_icon((int)id(ha_hour_3_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt3.val=%d", (current_hour + 3) % 24);
+          send_if_valid("fl3.val", id(ha_hour_3_feels_like).state);
+          send_if_valid("rain3.val", id(ha_hour_3_precipitation).state);
+          send_if_valid("wxIcon3.pic", wmo_to_icon((int)id(ha_hour_3_weather_code).state));
           
           // Hour 4
-          id(gazebo_nextion).send_command_printf("one.dt4.val=%d", (current_hour + 4) % 24);
-          send_if_valid("one.fl4.val", id(ha_hour_4_feels_like).state);
-          send_if_valid("one.rain4.val", id(ha_hour_4_precipitation).state);
-          send_if_valid("one.wxIcon4.pic", wmo_to_icon((int)id(ha_hour_4_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt4.val=%d", (current_hour + 4) % 24);
+          send_if_valid("fl4.val", id(ha_hour_4_feels_like).state);
+          send_if_valid("rain4.val", id(ha_hour_4_precipitation).state);
+          send_if_valid("wxIcon4.pic", wmo_to_icon((int)id(ha_hour_4_weather_code).state));
           
           // Hour 5
-          id(gazebo_nextion).send_command_printf("one.dt5.val=%d", (current_hour + 5) % 24);
-          send_if_valid("one.fl5.val", id(ha_hour_5_feels_like).state);
-          send_if_valid("one.rain5.val", id(ha_hour_5_precipitation).state);
-          send_if_valid("one.wxIcon5.pic", wmo_to_icon((int)id(ha_hour_5_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt5.val=%d", (current_hour + 5) % 24);
+          send_if_valid("fl5.val", id(ha_hour_5_feels_like).state);
+          send_if_valid("rain5.val", id(ha_hour_5_precipitation).state);
+          send_if_valid("wxIcon5.pic", wmo_to_icon((int)id(ha_hour_5_weather_code).state));
           
           // Hour 6
-          id(gazebo_nextion).send_command_printf("one.dt6.val=%d", (current_hour + 6) % 24);
-          send_if_valid("one.fl6.val", id(ha_hour_6_feels_like).state);
-          send_if_valid("one.rain6.val", id(ha_hour_6_precipitation).state);
-          send_if_valid("one.wxIcon6.pic", wmo_to_icon((int)id(ha_hour_6_weather_code).state));
+          id(gazebo_nextion).send_command_printf("dt6.val=%d", (current_hour + 6) % 24);
+          send_if_valid("fl6.val", id(ha_hour_6_feels_like).state);
+          send_if_valid("rain6.val", id(ha_hour_6_precipitation).state);
+          send_if_valid("wxIcon6.pic", wmo_to_icon((int)id(ha_hour_6_weather_code).state));
           
           ESP_LOGI("WEATHER", "Updated hourly forecast on Page 1");
 
@@ -478,5 +478,6 @@ script:
 interval:
   - interval: 30min
     then:
+      - script.execute: update_nextion_current_weather
       - script.execute: update_nextion_hourly
       - script.execute: update_nextion_daily
