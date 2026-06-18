@@ -87,7 +87,7 @@ Total: 517 lines (previously single file)
 
 #### Number Entities (Sliders)
 - `desired_temp`: Target setpoint (5°C - 35°C, 0.5°C steps, default 22°C)
-- `temp_offset`: Calibration offset (-5°C to +5°C, 0.1°C steps, default 0°C)
+- `temp_offset`: Calibration offset (-10°C to +10°C, 0.1°C steps, default -6.0°C)
 - `heating_hysteresis`: Deadband width (1°C - 5°C, 0.5°C steps, default 2°C)
 
 #### Select Entities

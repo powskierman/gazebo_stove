@@ -55,9 +55,15 @@ uart:
                 float desired_temp = (float) slider_val;
                 ESP_LOGI("NEXTION_SLIDER", "Numeric three.Slider0.val=%d -> target %.1f°C", slider_val, desired_temp);
 
+                if (id(nextion_ready) && !id(gazebo_nextion).is_failed()) {
+                  id(gazebo_nextion).send_command_printf("three.n0.val=%d", slider_val);
+                  id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
+                }
+
                 auto call = id(gazebo_thermostat).make_call();
                 call.set_target_temperature(desired_temp);
                 call.perform();
+                id(nextion_slider_interaction_active) = false;
               }
             }
 
@@ -91,9 +97,16 @@ uart:
               float desired_temp = (float) slider_val;
               ESP_LOGI("NEXTION_SLIDER", "Direct Slider0 value=%d -> target %.1f°C", slider_val, desired_temp);
 
+              if (id(nextion_ready) && !id(gazebo_nextion).is_failed()) {
+                id(gazebo_nextion).send_command_printf("three.n0.val=%d", slider_val);
+                id(gazebo_nextion).send_command_printf("three.Slider0.val=%d", slider_val);
+              }
+
               auto call = id(gazebo_thermostat).make_call();
               call.set_target_temperature(desired_temp);
               call.perform();
+              id(nextion_slider_read_pending) = false;
+              id(nextion_slider_interaction_active) = false;
               break;
             }
 
@@ -112,10 +125,14 @@ display:
       then:
         - lambda: |-
             ESP_LOGI("NEXTION_TOUCH", "Touch: page=%d, component=%d, pressed=%d", page_id, component_id, touch_event);
-            // When slider (component_id=4) is released on Page 3, capture touch
-            if (page_id == 3 && component_id == 4 && touch_event == false) {
-              id(slider_touched) = true;
-              ESP_LOGI("NEXTION_SLIDER", "Slider touch released on Page 3");
+            if (page_id == 3 && component_id == 4) {
+              id(nextion_slider_interaction_active) = true;
+              id(nextion_slider_last_touch_ms) = millis();
+              // When slider is released on Page 3, capture the final value.
+              if (touch_event == false) {
+                id(slider_touched) = true;
+                ESP_LOGI("NEXTION_SLIDER", "Slider touch released on Page 3");
+              }
             }
     on_sleep:
       then:

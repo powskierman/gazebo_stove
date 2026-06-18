@@ -110,7 +110,7 @@ entities:
   # Fine-tune temperature readings and heating behavior
   #
   - entity: number.gazebo_stove_temperature_offset
-    name: "📏 Temperature Offset (-5 to +5°C)"
+    name: "📏 Temperature Offset (-10 to +10°C)"
     icon: mdi:pencil
 
   - entity: number.gazebo_stove_heating_hysteresis
@@ -215,9 +215,9 @@ entities:
 # CALIBRATION:
 #   number.gazebo_stove_temperature_offset
 #     → Adjust sensor reading if it's not accurate
-#     → Positive = sensor reads too high, adjust down
-#     → Negative = sensor reads too low, adjust up
-#     → Range: -5 to +5°C
+#     → Negative = sensor reads too high, adjust down
+#     → Positive = sensor reads too low, adjust up
+#     → Range: -10 to +10°C
 #
 #   number.gazebo_stove_heating_hysteresis
 #     → Prevents relay from fluttering on/off at target temp

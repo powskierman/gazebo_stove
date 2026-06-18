@@ -41,7 +41,10 @@ script:
   - id: read_nextion_slider
     then:
       - delay: 100ms  # Small delay for Nextion to process
-      - lambda: 'id(nextion_slider_read_pending) = true;'
+      - lambda: |-
+          id(nextion_slider_interaction_active) = true;
+          id(nextion_slider_last_touch_ms) = millis();
+          id(nextion_slider_read_pending) = true;
       - component.update: nextion_slider_sensor
 
   # Refresh Page 3 thermostat values.
@@ -63,6 +66,19 @@ script:
             ESP_LOGI("NEXTION_THERMOSTAT", "Refreshed three.n1.val=%d", current_temp);
           } else {
             ESP_LOGW("NEXTION_THERMOSTAT", "Gazebo temperature invalid; three.n1 not refreshed");
+          }
+
+          bool slider_edit_active = id(nextion_slider_interaction_active) || id(nextion_slider_read_pending);
+          if (slider_edit_active && id(nextion_slider_last_touch_ms) != 0 && (millis() - id(nextion_slider_last_touch_ms)) > 3000) {
+            ESP_LOGW("NEXTION_THERMOSTAT", "Slider edit guard timed out; allowing target refresh");
+            id(nextion_slider_interaction_active) = false;
+            id(nextion_slider_read_pending) = false;
+            slider_edit_active = false;
+          }
+
+          if (slider_edit_active) {
+            ESP_LOGD("NEXTION_THERMOSTAT", "Skipping target refresh while slider edit is active");
+            return;
           }
 
           float target = id(gazebo_thermostat).target_temperature;
@@ -177,7 +193,7 @@ script:
   # Manage heating with priority logic for PID Controller
   # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > PID Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
-  # *** PRIORITY 2: Manual Run (Emergency Heat) - 15 min timer, forces heat ON ***
+  # *** PRIORITY 2: Manual Run (Emergency Heat) - configurable timer, forces heat ON ***
   # *** PRIORITY 3: Presence Mode (Schedule) - Away mode disables heating ***
   # *** PRIORITY 4 (LOWEST): PID Controller - automatic temperature control ***
   - id: manage_heating
@@ -186,14 +202,14 @@ script:
       - lambda: |-
           bool schedule_standby = (id(presence_mode).state.compare("away") == 0);
           bool manual_stop = id(manual_stop_active);
-          bool manual_run = id(manual_run_active);
+          bool manual_run_requested = id(manual_run_active);
           bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
           float pwm_output = id(heater_output_level);
 
           ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, EmergencyHeat=%s, ScheduleStandby=%s, PID_Output=%.1f%%",
                    manual_stop ? "true" : "false",
                    sensor_fault ? "true" : "false",
-                   manual_run ? "true" : "false",
+                   manual_run_requested ? "true" : "false",
                    schedule_standby ? "YES" : "NO",
                    pwm_output * 100.0);
 
@@ -216,30 +232,22 @@ script:
             return;
           }
 
-          // Priority 2: Manual Run (Emergency Heat) - 15-minute timer
-          if (manual_run) {
+          // Priority 2: Manual Run (Emergency Heat) - configurable timer
+          if (manual_run_requested) {
             id(heating_status).publish_state("Emergency Heat");
-            
+
             if (id(manual_run_timeout) == 0) {
               ESP_LOGW("MANUAL_RUN", "Timeout is 0 but manual_run_active is true - resetting");
               id(manual_run_timeout) = millis();
             }
 
-            long elapsed = millis() - id(manual_run_timeout);
-            long timeout_ms = 15 * 60 * 1000;
-
-            if (elapsed >= timeout_ms) {
-              ESP_LOGI("MANUAL_RUN", "15-minute timeout reached - auto-disabling");
-              id(manual_run_active) = false;
-              id(manual_run_timeout) = 0;
-              // Will check other priorities on next call
-              id(heating_action) = 0;
-            } else {
-              id(heating_action) = 2;
-              ESP_LOGI("PRIORITY", "Emergency Heat: %ld min remaining (Priority 2)", 
-                       (timeout_ms - elapsed) / 60000);
-              return;
-            }
+            uint32_t elapsed = millis() - id(manual_run_timeout);
+            uint32_t timeout_ms = (uint32_t) roundf(id(manual_run_duration).state * 60000.0f);
+            uint32_t remaining_ms = elapsed < timeout_ms ? timeout_ms - elapsed : 0;
+            id(heating_action) = 2;
+            ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 2)",
+                     (unsigned long) (remaining_ms / 60000));
+            return;
           }
 
           // Priority 3: Presence Mode (Schedule) - Home/Away based control
@@ -283,6 +291,10 @@ script:
           condition:
             lambda: 'return id(heating_action) == 2;'  # Emergency Heat
           then:
+            # Stop PID from overwriting the forced output on its next update.
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "OFF"
             - output.set_level:
                 id: heater_pwm
                 level: 1.0
@@ -298,24 +310,17 @@ script:
           condition:
             lambda: 'return id(heating_action) == 0 && id(gazebo_thermostat).mode == climate::CLIMATE_MODE_OFF;'
           then:
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "HEAT"
+            # Preserve the forced relay state until PID recalculates. A normal
+            # climate control call would leave the output at the OFF value.
+            - lambda: |-
+                id(gazebo_thermostat).mode = climate::CLIMATE_MODE_HEAT;
+                id(gazebo_thermostat).publish_state();
             - logger.log: "PID: Restoring HEAT mode (Priority 4)"
+            - component.update: gazebo_temp
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
   - id: update_relay_state
     then:
-      - script.execute: manage_heating
-
-  # Disable manual run and update switch state (used when timeout expires)
-  - id: disable_manual_run
-    then:
-      - lambda: |-
-          id(manual_run_active) = false;
-          id(manual_run_timeout) = 0;
-          ESP_LOGI("MANUAL_RUN", "Manual run disabled via script");
-          id(manual_run).publish_state(false);
       - script.execute: manage_heating
 
 # ============================================================================
@@ -323,40 +328,29 @@ script:
 # ============================================================================
 
 interval:
-  # Check Manual Run timeout every 30 seconds
-  - interval: 30s
+  # Check Manual Run timeout every second
+  - interval: 1s
     then:
       - if:
           condition:
             - lambda: |-
                 return id(manual_run_active);
           then:
-            - lambda: |-
-                // Safety check: if timeout is 0, skip check
-                if (id(manual_run_timeout) == 0) {
-                  ESP_LOGW("MANUAL_RUN", "Timeout check: timeout is 0, skipping");
-                } else {
-                  long elapsed = millis() - id(manual_run_timeout);
-                  long timeout_ms = 15 * 60 * 1000; // 15 minutes
-                  long remaining_ms = timeout_ms - elapsed;
-                  long remaining_min = remaining_ms / 1000 / 60;
-                  long remaining_sec = (remaining_ms / 1000) % 60;
-
-                  if (elapsed >= timeout_ms) {
-                    ESP_LOGI("MANUAL_RUN", "Timeout check: 15 minutes reached - auto-disabling");
-                    id(manual_run_active) = false;
-                    id(manual_run_timeout) = 0;
-                  } else {
-                    ESP_LOGD("MANUAL_RUN", "Timeout check: %ld:%02ld remaining", remaining_min, remaining_sec);
-                  }
-                }
-            - script.execute: manage_heating
             - if:
                 condition:
                   lambda: |-
-                    return !id(manual_run_active) && id(manual_run_timeout) == 0;
+                    if (id(manual_run_timeout) == 0) {
+                      ESP_LOGW("MANUAL_RUN", "Timeout check: start time is 0");
+                      return false;
+                    }
+                    uint32_t elapsed = millis() - id(manual_run_timeout);
+                    uint32_t timeout_ms = (uint32_t) roundf(id(manual_run_duration).state * 60000.0f);
+                    return elapsed >= timeout_ms;
                 then:
-                  - script.execute: disable_manual_run
+                  - logger.log: "Manual Run duration expired"
+                  # Use the switch action so its state and internal flags are
+                  # cleared through the same path as a user request.
+                  - switch.turn_off: manual_run
 
   # Periodic Display Refresh (every 5s)
   # Variable writes are disabled until the flashed TFT component map is confirmed.

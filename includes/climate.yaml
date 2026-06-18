@@ -39,7 +39,9 @@ climate:
       kp: 5.0      # Proportional - moderate response to error
       ki: 0.003    # Integral - slow accumulation to fix steady-state error
       kd: 100.0    # Derivative - dampen oscillation, prevent overshoot
-      output_averaging_samples: 5  # Smooth output
+      # React to setpoint changes on the next sensor update. Averaging five
+      # outputs retained the old demand for about 50 seconds.
+      output_averaging_samples: 1
     
     # Deadband for stability - prevents oscillation near setpoint
     deadband_parameters:
@@ -48,7 +50,8 @@ climate:
       kp_multiplier: 0.0      # No proportional response in deadband
       ki_multiplier: 0.05     # Slow integral accumulation (5%)
       kd_multiplier: 0.0      # No derivative in deadband
-      deadband_output_averaging_samples: 15  # Extra smoothing in deadband
+      # Keep modest smoothing near the target without adding minutes of lag.
+      deadband_output_averaging_samples: 3
     
     # Visual settings
     visual:

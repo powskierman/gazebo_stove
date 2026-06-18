@@ -60,7 +60,7 @@ switch:
             level: 0.0
         - light.turn_off: status_light
 
-  # Manual Run Override (Emergency heating for 15 minutes)
+  # Manual Run Override (duration configured in Home Assistant)
   - platform: template
     name: "Manual Run"
     id: manual_run
@@ -80,11 +80,12 @@ switch:
               # Turn the switch back off immediately in the UI to reflect that the action was rejected
               - switch.turn_off: manual_run
             else:
-              - logger.log: "Manual Run enabled - 15 minute emergency heating"
+              - logger.log: "Manual Run enabled"
               - lambda: |-
                   id(manual_run_timeout) = millis();
                   id(manual_run_active) = true;
-                  ESP_LOGI("MANUAL_RUN", "Activated - 15-min timer started at %lu ms", id(manual_run_timeout));
+                  ESP_LOGI("MANUAL_RUN", "Activated for %.0f minutes at %lu ms",
+                           id(manual_run_duration).state, (unsigned long) id(manual_run_timeout));
                   // Update switch state to reflect the change
                   id(manual_run).publish_state(true);
               - script.execute: manage_heating

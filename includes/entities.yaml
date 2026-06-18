@@ -23,19 +23,39 @@ binary_sensor:
 
 number:
 
+  # Duration of the Manual Run override
+  - platform: template
+    name: "Manual Run Duration"
+    id: manual_run_duration
+    min_value: 1
+    max_value: 120
+    step: 1
+    mode: box
+    unit_of_measurement: "min"
+    icon: "mdi:timer"
+    entity_category: "config"
+    restore_value: yes
+    optimistic: true
+    initial_value: 15
+    set_action:
+      then:
+        - logger.log:
+            format: "Manual Run duration set to %.0f minutes"
+            args: ["x"]
+
   # Temperature Offset (Calibration)
   - platform: template
     name: "Temperature Offset"
     id: temp_offset
-    min_value: -5
-    max_value: 5
+    min_value: -10
+    max_value: 10
     step: 0.1
     unit_of_measurement: "°C"
     icon: "mdi:plus-minus"
     entity_category: "diagnostic"
     restore_value: yes
     optimistic: true
-    initial_value: 0
+    initial_value: -6.0
     set_action:
       then:
         - logger.log:
@@ -314,6 +334,18 @@ globals:
     type: bool
     restore_value: no
     initial_value: 'false'
+
+  # Prevent stale thermostat refreshes from overwriting the slider while the
+  # user is dragging it or while a readback is in progress.
+  - id: nextion_slider_interaction_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: nextion_slider_last_touch_ms
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
 
   # Waiting for Nextion numeric return from get three.Slider0.val
   - id: nextion_slider_read_pending
