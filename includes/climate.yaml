@@ -1,17 +1,17 @@
 # ============================================================================
-# CLIMATE (PID THERMOSTAT) COMPONENT
+# CLIMATE (THERMOSTAT) COMPONENT
 # ============================================================================
-# ESPHome PID climate component for propane stove heating control
+# ESPHome thermostat climate component for propane stove heating control
 # All control logic runs on ESP32 - works even if Home Assistant is unavailable
 
 # ============================================================================
-# SLOW PWM OUTPUT - Converts PID 0-100% to relay ON/OFF cycles
+# HEATER OUTPUT - Binary relay output used by the thermostat climate platform
 # ============================================================================
 output:
   - platform: slow_pwm
     id: heater_pwm
     pin: GPIO12
-    period: 120s  # 2-minute cycle period for propane stove
+    period: 120s
     turn_on_action:
       then:
         - lambda: 'id(heater_output_level) = 1.0;'
@@ -22,38 +22,41 @@ output:
         - light.turn_off: status_light
 
 # ============================================================================
-# PID CLIMATE CONTROLLER
+# THERMOSTAT CLIMATE CONTROLLER
 # ============================================================================
 climate:
-  - platform: pid
+  - platform: thermostat
     id: gazebo_thermostat
     name: "Gazebo Stove"
     sensor: gazebo_temp
-    default_target_temperature: 20
-    heat_output: heater_pwm
-    
-    # PID Control Parameters
-    # Conservative values for propane stove heating
-    # Tune later with autotune when actual heater is connected
-    control_parameters:
-      kp: 5.0      # Proportional - moderate response to error
-      ki: 0.003    # Integral - slow accumulation to fix steady-state error
-      kd: 100.0    # Derivative - dampen oscillation, prevent overshoot
-      # React to setpoint changes on the next sensor update. Averaging five
-      # outputs retained the old demand for about 50 seconds.
-      output_averaging_samples: 1
-    
-    # Deadband for stability - prevents oscillation near setpoint
-    deadband_parameters:
-      threshold_high: 1.0°C   # Don't reduce heat until 1°C above target
-      threshold_low: -1.0°C   # Don't increase heat until 1°C below target
-      kp_multiplier: 0.0      # No proportional response in deadband
-      ki_multiplier: 0.05     # Slow integral accumulation (5%)
-      kd_multiplier: 0.0      # No derivative in deadband
-      # Keep modest smoothing near the target without adding minutes of lag.
-      deadband_output_averaging_samples: 3
-    
-    # Visual settings
+    min_heating_off_time: 30s
+    min_heating_run_time: 30s
+    min_idle_time: 10s
+    heat_deadband: 1.0°C
+    heat_overrun: 1.0°C
+    heat_action:
+      - output.set_level:
+          id: heater_pwm
+          level: 1.0
+      - lambda: 'id(heater_output_level) = 1.0;'
+      - light.turn_on: status_light
+    idle_action:
+      - output.set_level:
+          id: heater_pwm
+          level: 0.0
+      - lambda: 'id(heater_output_level) = 0.0;'
+      - light.turn_off: status_light
+    off_mode:
+      - output.set_level:
+          id: heater_pwm
+          level: 0.0
+      - lambda: 'id(heater_output_level) = 0.0;'
+      - light.turn_off: status_light
+    default_preset: Home
+    preset:
+      - name: Home
+        default_target_temperature_low: 20°C
+        mode: HEAT
     visual:
       min_temperature: 5
       max_temperature: 35
@@ -66,21 +69,14 @@ climate:
 # ============================================================================
 # IMPLEMENTATION NOTES
 # ============================================================================
-# The PID climate controller provides:
-# 1. Proportional-Integral-Derivative heat-only temperature control
-# 2. Slow PWM output for binary relay (2-minute cycle)
-# 3. Deadband to prevent rapid cycling near setpoint
-# 4. Smooth output averaging for stable operation
+# The thermostat climate controller provides:
+# 1. Heat-only on/off temperature control
+# 2. 2°C total hysteresis width: heat below target - 1°C, idle above target + 1°C
+# 3. Minimum run/off/idle timers to prevent rapid relay cycling
 #
 # Priority overrides (Force Off, Emergency Heat, Schedule) are handled
 # by the manage_heating script in automation.yaml which can override
-# the PID controller when needed.
-#
-# AUTOTUNE PROCESS:
-# 1. Use the "PID Autotune" button to start autotuning
-# 2. Wait for oscillation cycles (can take 1-2 hours)
-# 3. Copy kp, ki, kd values from logs to this file
-# 4. Re-upload firmware with tuned values
+# the thermostat controller when needed.
 #
 # Note: The heater_output_level global is updated by slow_pwm on/off actions
 # to track the current state for the priority override system.

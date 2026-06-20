@@ -91,10 +91,6 @@ entities:
     name: "Temperature Offset (-10 to +10°C)"
     icon: mdi:pencil
 
-  - entity: number.gazebo_stove_heating_hysteresis
-    name: "Heating Hysteresis"
-    icon: mdi:sine-wave
-
   # ========================================================================
   # SYSTEM STATUS
   # ========================================================================
@@ -162,7 +158,6 @@ show_header_toggle: false
 #
 # Calibration:
 #   number.gazebo_stove_temperature_offset
-#   number.gazebo_stove_heating_hysteresis
 #
 # System:
 #   binary_sensor.gazebo_stove_sensor_malfunction

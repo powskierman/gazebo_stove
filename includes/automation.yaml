@@ -4,38 +4,6 @@
 # Scripts for heating control, display initialization, and system management
 
 script:
-  # Apply restored Home Assistant tuning values to runtime controller objects.
-  - id: apply_thermostat_tuning
-    then:
-      - lambda: |-
-          if (!isnan(id(pid_kp).state)) {
-            id(gazebo_thermostat).set_kp(id(pid_kp).state);
-          }
-          if (!isnan(id(pid_ki).state)) {
-            id(gazebo_thermostat).set_ki(id(pid_ki).state);
-          }
-          if (!isnan(id(pid_kd).state)) {
-            id(gazebo_thermostat).set_kd(id(pid_kd).state);
-          }
-          if (!isnan(id(pid_deadband_low).state)) {
-            id(gazebo_thermostat).set_threshold_low(id(pid_deadband_low).state);
-          }
-          if (!isnan(id(pid_deadband_high).state)) {
-            id(gazebo_thermostat).set_threshold_high(id(pid_deadband_high).state);
-          }
-          if (!isnan(id(heater_pwm_period).state)) {
-            unsigned int period_ms = (unsigned int) roundf(id(heater_pwm_period).state * 1000.0f);
-            id(heater_pwm).set_period(period_ms);
-            id(heater_pwm).restart_cycle();
-          }
-          ESP_LOGI("PID_TUNING", "Applied runtime tuning: Kp=%.3f Ki=%.4f Kd=%.1f Low=%.1f°C High=%.1f°C PWM=%.0fs",
-                   id(pid_kp).state,
-                   id(pid_ki).state,
-                   id(pid_kd).state,
-                   id(pid_deadband_low).state,
-                   id(pid_deadband_high).state,
-                   id(heater_pwm_period).state);
-
   # Read Nextion Slider0 value and update thermostat
   # This script is called when touch is released on Page 3
   - id: read_nextion_slider
@@ -96,26 +64,26 @@ script:
     then:
       - lambda: |-
           if (!id(nextion_ready)) {
-            ESP_LOGD("NEXTION_NHMETEO", "Display not ready; skipping current weather refresh");
+            ESP_LOGD("NEXTION_WEATHER", "Display not ready; skipping current weather refresh");
             return;
           }
           if (id(gazebo_nextion).is_failed()) {
-            ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; skipping current weather refresh");
+            ESP_LOGW("NEXTION_WEATHER", "Display is_failed=true; skipping current weather refresh");
             return;
           }
 
           if (!isnan(id(ha_nhmeteo_temp).state)) {
             id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
-            ESP_LOGI("NEXTION_NHMETEO", "Refreshed page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+            ESP_LOGI("NEXTION_WEATHER", "Refreshed page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
           } else {
-            ESP_LOGW("NEXTION_NHMETEO", "NHMeteo temperature is NaN; page zero temp not refreshed");
+            ESP_LOGW("NEXTION_WEATHER", "NHMeteo temperature is NaN; page zero temp not refreshed");
           }
 
           if (!isnan(id(ha_nhmeteo_humidity).state)) {
             id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(id(ha_nhmeteo_humidity).state));
-            ESP_LOGI("NEXTION_NHMETEO", "Refreshed page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
+            ESP_LOGI("NEXTION_WEATHER", "Refreshed page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
           } else {
-            ESP_LOGW("NEXTION_NHMETEO", "NHMeteo humidity is NaN; page zero precip not refreshed");
+            ESP_LOGW("NEXTION_WEATHER", "NHMeteo humidity is NaN; page zero precip not refreshed");
           }
 
   # Initialize Nextion display on boot
@@ -149,11 +117,11 @@ script:
 
           if (!isnan(id(ha_nhmeteo_temp).state)) {
             id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
-            ESP_LOGI("NEXTION_NHMETEO", "Initialized page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
+            ESP_LOGI("NEXTION_WEATHER", "Initialized page zero temp.val=%d", (int) round(id(ha_nhmeteo_temp).state));
           }
           if (!isnan(id(ha_nhmeteo_humidity).state)) {
             id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(id(ha_nhmeteo_humidity).state));
-            ESP_LOGI("NEXTION_NHMETEO", "Initialized page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
+            ESP_LOGI("NEXTION_WEATHER", "Initialized page zero precip.val=%d from NHMeteo humidity", (int) round(id(ha_nhmeteo_humidity).state));
           }
 
           ESP_LOGI("NEXTION_INIT", "Display initialization complete");
@@ -190,12 +158,12 @@ script:
 
 
 
-  # Manage heating with priority logic for PID Controller
-  # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > PID Thermostat
+  # Manage heating with priority logic for Thermostat Controller
+  # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
   # *** PRIORITY 2: Manual Run (Emergency Heat) - configurable timer, forces heat ON ***
   # *** PRIORITY 3: Presence Mode (Schedule) - Away mode disables heating ***
-  # *** PRIORITY 4 (LOWEST): PID Controller - automatic temperature control ***
+  # *** PRIORITY 4 (LOWEST): Thermostat Controller - automatic temperature control ***
   - id: manage_heating
     then:
       # Check priorities and set action flags
@@ -206,7 +174,7 @@ script:
           bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
           float pwm_output = id(heater_output_level);
 
-          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, EmergencyHeat=%s, ScheduleStandby=%s, PID_Output=%.1f%%",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, EmergencyHeat=%s, ScheduleStandby=%s, Heater_Output=%.1f%%",
                    manual_stop ? "true" : "false",
                    sensor_fault ? "true" : "false",
                    manual_run_requested ? "true" : "false",
@@ -214,7 +182,7 @@ script:
                    pwm_output * 100.0);
 
           // Determine action based on priority
-          // Store decision in heating_action global: 0=PID, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+          // Store decision in heating_action global: 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby
           
           // Priority 1: Manual Stop (Force Off) - HIGHEST PRIORITY
           if (manual_stop) {
@@ -258,19 +226,17 @@ script:
             return;
           }
 
-          // Priority 4: PID Controller - Let PID manage heating automatically
+          // Priority 4: Thermostat Controller - Let thermostat manage heating automatically
           id(heating_action) = 0;
           
-          // Update status based on PID output
+          // Update status based on thermostat output
           if (pwm_output > 0.5) {
             id(heating_status).publish_state("Heating");
-          } else if (pwm_output > 0) {
-            id(heating_status).publish_state("Low Heat");
           } else {
             id(heating_status).publish_state("Idle");
           }
           
-          ESP_LOGI("PID", "Current: %.1f°C, Target: %.1f°C, Output: %.0f%%",
+          ESP_LOGI("THERMOSTAT", "Current: %.1f°C, Target: %.1f°C, Output: %.0f%%",
                    id(gazebo_temp).state,
                    id(gazebo_thermostat).target_temperature,
                    pwm_output * 100.0);
@@ -291,7 +257,7 @@ script:
           condition:
             lambda: 'return id(heating_action) == 2;'  # Emergency Heat
           then:
-            # Stop PID from overwriting the forced output on its next update.
+            # Stop thermostat control from overwriting the forced output on its next update.
             - climate.control:
                 id: gazebo_thermostat
                 mode: "OFF"
@@ -310,12 +276,11 @@ script:
           condition:
             lambda: 'return id(heating_action) == 0 && id(gazebo_thermostat).mode == climate::CLIMATE_MODE_OFF;'
           then:
-            # Preserve the forced relay state until PID recalculates. A normal
-            # climate control call would leave the output at the OFF value.
-            - lambda: |-
-                id(gazebo_thermostat).mode = climate::CLIMATE_MODE_HEAT;
-                id(gazebo_thermostat).publish_state();
-            - logger.log: "PID: Restoring HEAT mode (Priority 4)"
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "HEAT"
+                preset: Home
+            - logger.log: "Thermostat: Restoring HEAT mode (Priority 4)"
             - component.update: gazebo_temp
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)

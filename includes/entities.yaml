@@ -62,125 +62,6 @@ number:
             format: "Temperature offset set to %.1f°C"
             args: ["x"]
 
-  # PID proportional gain
-  - platform: template
-    name: "PID Kp"
-    id: pid_kp
-    min_value: 0
-    max_value: 20
-    step: 0.1
-    mode: box
-    icon: "mdi:tune"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: 5.0
-    set_action:
-      then:
-        - lambda: |-
-            id(gazebo_thermostat).set_kp(x);
-            ESP_LOGI("PID_TUNING", "PID Kp set to %.3f", x);
-
-  # PID integral gain
-  - platform: template
-    name: "PID Ki"
-    id: pid_ki
-    min_value: 0
-    max_value: 0.1
-    step: 0.001
-    mode: box
-    icon: "mdi:tune"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: 0.003
-    set_action:
-      then:
-        - lambda: |-
-            id(gazebo_thermostat).set_ki(x);
-            ESP_LOGI("PID_TUNING", "PID Ki set to %.4f", x);
-
-  # PID derivative gain
-  - platform: template
-    name: "PID Kd"
-    id: pid_kd
-    min_value: 0
-    max_value: 500
-    step: 1
-    mode: box
-    icon: "mdi:tune"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: 100
-    set_action:
-      then:
-        - lambda: |-
-            id(gazebo_thermostat).set_kd(x);
-            ESP_LOGI("PID_TUNING", "PID Kd set to %.1f", x);
-
-  # PID deadband upper threshold relative to target temperature
-  - platform: template
-    name: "PID Deadband High"
-    id: pid_deadband_high
-    min_value: 0
-    max_value: 5
-    step: 0.1
-    mode: box
-    unit_of_measurement: "°C"
-    icon: "mdi:thermometer-chevron-up"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: 1.0
-    set_action:
-      then:
-        - lambda: |-
-            id(gazebo_thermostat).set_threshold_high(x);
-            ESP_LOGI("PID_TUNING", "PID deadband high set to %.1f°C", x);
-
-  # PID deadband lower threshold relative to target temperature
-  - platform: template
-    name: "PID Deadband Low"
-    id: pid_deadband_low
-    min_value: -5
-    max_value: 0
-    step: 0.1
-    mode: box
-    unit_of_measurement: "°C"
-    icon: "mdi:thermometer-chevron-down"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: -1.0
-    set_action:
-      then:
-        - lambda: |-
-            id(gazebo_thermostat).set_threshold_low(x);
-            ESP_LOGI("PID_TUNING", "PID deadband low set to %.1f°C", x);
-
-  # Slow PWM relay cycle period
-  - platform: template
-    name: "Heater PWM Period"
-    id: heater_pwm_period
-    min_value: 60
-    max_value: 900
-    step: 10
-    mode: box
-    unit_of_measurement: "s"
-    icon: "mdi:timer-cog"
-    entity_category: "config"
-    restore_value: yes
-    optimistic: true
-    initial_value: 120
-    set_action:
-      then:
-        - lambda: |-
-            unsigned int period_ms = (unsigned int) roundf(x * 1000.0f);
-            id(heater_pwm).set_period(period_ms);
-            id(heater_pwm).restart_cycle();
-            ESP_LOGI("PID_TUNING", "Heater PWM period set to %.0fs", x);
-
 # ============================================================================
 # SELECT ENTITIES - Mode Selection
 # ============================================================================
@@ -361,7 +242,7 @@ globals:
     initial_value: '0.0'
 
   # Heating action flag for priority system
-  # 0=PID, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+  # 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby
   - id: heating_action
     type: int
     restore_value: no

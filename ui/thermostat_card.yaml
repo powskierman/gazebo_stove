@@ -58,9 +58,6 @@ entities:
   - entity: number.gazebo_stove_temperature_offset
     name: Temperature Offset (-10 to +10°C)
     icon: mdi:pencil
-  - entity: number.gazebo_stove_heating_hysteresis
-    name: Heating Hysteresis
-    icon: mdi:sine-wave
   - type: divider
   - entity: binary_sensor.gazebo_stove_sensor_malfunction
     name: Sensor Malfunction

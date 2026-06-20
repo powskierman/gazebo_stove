@@ -119,8 +119,8 @@ display:
     uart_id: uart_nextion
     id: gazebo_nextion
     touch_sleep_timeout: 0
-    # v4 HMI has the intended home page named "zero" at page index 1.
-    wake_up_page: 1
+    # Page zero is the intended home screen.
+    wake_up_page: 0
     on_touch:
       then:
         - lambda: |-
@@ -145,6 +145,11 @@ display:
             id(nextion_sleeping) = false;
             ESP_LOGI("NEXTION_WAKE", "Display woke from sleep - waiting for ready...");
         - delay: 500ms  # Give Nextion time to fully wake before sending commands
+        - lambda: |-
+            if (!id(gazebo_nextion).is_failed()) {
+              id(gazebo_nextion).send_command("page zero");
+              ESP_LOGI("NEXTION_WAKE", "Display forced to page 'zero' on wake");
+            }
         - script.execute: refresh_nextion_all
     on_setup:
       then:

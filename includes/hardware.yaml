@@ -28,14 +28,14 @@ light:
     id: status_light
 
 # ============================================================================
-# RELAY STATUS (GPIO12 controlled by PID via slow_pwm in climate.yaml)
+# RELAY STATUS (GPIO12 controlled by thermostat via slow_pwm in climate.yaml)
 # ============================================================================
 # Note: The physical relay is now controlled by the slow_pwm output in climate.yaml
 # This template switch provides UI visibility and allows manual overrides
 
 switch:
   # Relay status display - reflects slow_pwm output state
-  # Note: Direct control is handled by PID; this is for monitoring/override
+  # Note: Direct control is handled by the thermostat; this is for monitoring/override
   - platform: template
     name: "Stove Relay"
     id: relay

@@ -44,8 +44,6 @@ cards:
         name: ❌ Force OFF
       - type: section
         label: Advanced Settings
-      - entity: number.gazebo_stove_heating_hysteresis
-        name: 〰️ Heating Hysteresis
       - entity: number.gazebo_stove_temperature_offset
         name: 📏 Temp Calibration
 

@@ -71,9 +71,7 @@ This directory contains the modular sub-configurations for the Gazebo Stove ESPH
 **Lines**: 157
 
 **User Controls**:
-- `desired_temp`: Temperature setpoint (5-35°C, default 22°C)
 - `temp_offset`: Calibration offset (-10 to +10°C, default -6.0°C)
-- `heating_hysteresis`: Deadband control (1-5°C, default 2°C)
 - `presence_mode`: Home/Away selection
 
 **Status Indicators**:

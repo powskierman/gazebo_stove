@@ -102,7 +102,7 @@ sensor:
             }
 
   # ============================================================================
-  # NHMeteo Home Assistant Imports
+  # Main dashboard outdoor weather Home Assistant imports
   # ============================================================================
   - platform: homeassistant
     id: ha_nhmeteo_temp
@@ -112,14 +112,14 @@ sensor:
       then:
         - lambda: |-
             if (isnan(x)) {
-              ESP_LOGW("NEXTION_NHMETEO", "Skipping invalid NHMeteo temperature");
+              ESP_LOGW("NEXTION_WEATHER", "Skipping invalid NHMeteo temperature");
             } else if (!id(nextion_ready)) {
-              ESP_LOGD("NEXTION_NHMETEO", "Display not ready; NHMeteo temperature %.1f not sent", x);
+              ESP_LOGD("NEXTION_WEATHER", "Display not ready; NHMeteo temperature %.1f not sent", x);
             } else if (id(gazebo_nextion).is_failed()) {
-              ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; NHMeteo temperature not sent");
+              ESP_LOGW("NEXTION_WEATHER", "Display is_failed=true; NHMeteo temperature not sent");
             } else {
               id(gazebo_nextion).send_command_printf("temp.val=%d", (int) round(x));
-              ESP_LOGI("NEXTION_NHMETEO", "Sent page zero temp.val=%d", (int) round(x));
+              ESP_LOGI("NEXTION_WEATHER", "Sent page zero temp.val=%d", (int) round(x));
             }
 
   - platform: homeassistant
@@ -130,14 +130,14 @@ sensor:
       then:
         - lambda: |-
             if (isnan(x)) {
-              ESP_LOGW("NEXTION_NHMETEO", "Skipping invalid NHMeteo humidity");
+              ESP_LOGW("NEXTION_WEATHER", "Skipping invalid NHMeteo humidity");
             } else if (!id(nextion_ready)) {
-              ESP_LOGD("NEXTION_NHMETEO", "Display not ready; NHMeteo humidity %.1f not sent", x);
+              ESP_LOGD("NEXTION_WEATHER", "Display not ready; NHMeteo humidity %.1f not sent", x);
             } else if (id(gazebo_nextion).is_failed()) {
-              ESP_LOGW("NEXTION_NHMETEO", "Display is_failed=true; NHMeteo humidity not sent");
+              ESP_LOGW("NEXTION_WEATHER", "Display is_failed=true; NHMeteo humidity not sent");
             } else {
               id(gazebo_nextion).send_command_printf("precip.val=%d", (int) round(x));
-              ESP_LOGI("NEXTION_NHMETEO", "Sent page zero precip.val=%d from NHMeteo humidity", (int) round(x));
+              ESP_LOGI("NEXTION_WEATHER", "Sent page zero precip.val=%d from NHMeteo humidity", (int) round(x));
             }
 
   # ============================================================================
