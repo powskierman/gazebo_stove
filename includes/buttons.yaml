@@ -10,6 +10,13 @@ button:
     id: restart_button
     entity_category: "diagnostic"
 
+  # Recovery path for OTA-only hardware. Reboots into ESPHome Safe Mode, where
+  # normal components are disabled and network/OTA remain available for repair.
+  - platform: safe_mode
+    name: "Restart in ESPHome Safe Mode"
+    id: safe_mode_button
+    entity_category: "diagnostic"
+
   # Safe shutdown button (for maintenance)
   - platform: template
     name: "Safe Shutdown"
