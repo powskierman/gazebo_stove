@@ -43,10 +43,10 @@ number:
             format: "Manual Run duration set to %.0f minutes"
             args: ["x"]
 
-  # Symmetric thermostat band: heat begins this far below the target and
-  # stops this far above it.
+  # Asymmetric thermostat overrun: heat starts at the target and stops this
+  # many degrees above it.
   - platform: template
-    name: "Heating Hysteresis"
+    name: "Heating Overrun"
     id: heating_hysteresis
     min_value: 0.5
     max_value: 5
@@ -56,13 +56,13 @@ number:
     entity_category: "config"
     restore_value: yes
     optimistic: true
-    initial_value: 3.0
+    initial_value: 1.0
     set_action:
       then:
         - lambda: |-
-            id(gazebo_thermostat).set_heat_deadband(x);
+            id(gazebo_thermostat).set_heat_deadband(0.0f);
             id(gazebo_thermostat).set_heat_overrun(x);
-            ESP_LOGI("THERMOSTAT", "Symmetric heating hysteresis set to ±%.1f°C", x);
+            ESP_LOGI("THERMOSTAT", "Heating overrun set to +%.1f°C (heat-on at target)", x);
         - component.update: gazebo_temp
 
   # Temperature Offset (Calibration)
@@ -228,6 +228,18 @@ globals:
     restore_value: yes
     initial_value: 'false'
 
+  # Service-only timed direct relay test. Force Off and sensor-fault lockouts
+  # always take precedence over this request.
+  - id: service_pulse_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: service_pulse_started_at
+    type: uint32_t
+    restore_value: no
+    initial_value: '0'
+
   # Nextion Slider0 value tracker (HMI range 15-25°C)
   - id: nextion_slider_value
     type: float
@@ -266,7 +278,7 @@ globals:
     initial_value: '0.0'
 
   # Heating action flag for priority system
-  # 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+  # 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby, 4=ServicePulse
   - id: heating_action
     type: int
     restore_value: no

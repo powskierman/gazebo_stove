@@ -1,16 +1,16 @@
 # ============================================================================
 # HOME ASSISTANT THERMOSTAT CARD CONFIGURATION
 # ============================================================================
-# Lovelace card YAML for the Propane Stove Thermostat
+# Lovelace card YAML for the ESPHome-owned Gazebo Stove thermostat.
 #
-# This is now an entities card (not a thermostat card) because we removed
-# the ESPHome climate platform to use a single source of truth (the priority system)
+# The ESPHome climate component is the normal thermostat controller. Its priority
+# system handles Force Off, schedule standby, and timed Heat On overrides.
 #
 # The card displays:
 # - Current temperature (sensor)
-# - Desired temperature (adjustable slider)
+# - Thermostat target temperature (from the climate entity)
 # - Presence mode (home/away selector)
-# - Relay status (shows actual stove state)
+# - Service override (direct GPIO12 test; not for normal operation)
 # - Schedule controls
 # - Manual overrides (Emergency Heat, Force Off)
 # ============================================================================
@@ -50,7 +50,7 @@ entities:
     icon: mdi:power-off
   - type: divider
   - entity: number.gazebo_stove_heating_hysteresis
-    name: Heating Hysteresis
+    name: Heating Overrun (0→x°C)
     icon: mdi:arrow-expand-vertical
   - type: divider
   - type: section
@@ -67,4 +67,12 @@ entities:
   - entity: sensor.gazebo_stove_system_status
     name: System Status
     icon: mdi:information
+  - type: section
+    label: Service
+  - entity: switch.gazebo_stove_stove_relay
+    name: Stove Relay Service Override
+    icon: mdi:tools
+  - entity: switch.gazebo_stove_service_relay_pulse
+    name: Service Relay Pulse (15 min)
+    icon: mdi:timer-outline
 show_header_toggle: false

@@ -159,30 +159,33 @@ script:
 
 
   # Manage heating with priority logic for Thermostat Controller
-  # PRIORITY ORDER: Force Off > Away Schedule > Emergency Heat > Thermostat
+  # PRIORITY ORDER: Force Off > Sensor Fault > Service Pulse > Away Schedule > Emergency Heat > Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
-  # *** PRIORITY 2: Presence Mode (Schedule) - Away mode disables all heating ***
-  # *** PRIORITY 3: Manual Run (Emergency Heat) - configurable timer, Home only ***
-  # *** PRIORITY 4 (LOWEST): Thermostat Controller - automatic temperature control ***
+  # *** PRIORITY 2: Service Relay Pulse - fixed 15-minute supervised test ***
+  # *** PRIORITY 3: Presence Mode (Schedule) - Away mode disables all heating ***
+  # *** PRIORITY 4: Manual Run (Emergency Heat) - configurable timer, Home only ***
+  # *** PRIORITY 5 (LOWEST): Thermostat Controller - automatic temperature control ***
   - id: manage_heating
     then:
       # Check priorities and set action flags
       - lambda: |-
           bool schedule_standby = (id(presence_mode).state.compare("away") == 0);
           bool manual_stop = id(manual_stop_active);
+          bool service_pulse_requested = id(service_pulse_active);
           bool manual_run_requested = id(manual_run_active);
           bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
           float pwm_output = id(heater_output_level);
 
-          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, EmergencyHeat=%s, ScheduleStandby=%s, Heater_Output=%.1f%%",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, ServicePulse=%s, EmergencyHeat=%s, ScheduleStandby=%s, Heater_Output=%.1f%%",
                    manual_stop ? "true" : "false",
                    sensor_fault ? "true" : "false",
+                   service_pulse_requested ? "true" : "false",
                    manual_run_requested ? "true" : "false",
                    schedule_standby ? "YES" : "NO",
                    pwm_output * 100.0);
 
           // Determine action based on priority
-          // Store decision in heating_action global: 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby
+          // Store decision in heating_action global: 0=Thermostat, 1=ForceOff, 2=EmergencyHeat, 3=Standby, 4=ServicePulse
           
           // Priority 1: Manual Stop (Force Off) - HIGHEST PRIORITY
           if (manual_stop) {
@@ -200,7 +203,16 @@ script:
             return;
           }
 
-          // Priority 2: Away is an absolute heat-off, including Manual Run.
+          // Priority 2: supervised service test; Force Off and sensor fault
+          // remain absolute lockouts.
+          if (service_pulse_requested) {
+            id(heating_status).publish_state("Service Relay Pulse");
+            id(heating_action) = 4;
+            ESP_LOGW("PRIORITY", "Service relay pulse active (Priority 2)");
+            return;
+          }
+
+          // Priority 3: Away is an absolute heat-off, including Manual Run.
           if (schedule_standby) {
             id(heating_status).publish_state("Schedule Standby");
             id(heating_action) = 3;
@@ -208,7 +220,7 @@ script:
             return;
           }
 
-          // Priority 3: Manual Run (Emergency Heat) - configurable timer.
+          // Priority 4: Manual Run (Emergency Heat) - configurable timer.
           if (manual_run_requested) {
             id(heating_status).publish_state("Emergency Heat");
 
@@ -221,12 +233,12 @@ script:
             uint32_t timeout_ms = (uint32_t) roundf(id(manual_run_duration).state * 60000.0f);
             uint32_t remaining_ms = elapsed < timeout_ms ? timeout_ms - elapsed : 0;
             id(heating_action) = 2;
-            ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 3)",
+            ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 4)",
                      (unsigned long) (remaining_ms / 60000));
             return;
           }
 
-          // Priority 4: Thermostat Controller - Let thermostat manage heating automatically
+          // Priority 5: Thermostat Controller - Let thermostat manage heating automatically
           id(heating_action) = 0;
           
           // Update status based on thermostat output
@@ -258,6 +270,17 @@ script:
             lambda: 'return id(heating_action) == 2;'  # Emergency Heat
           then:
             # Stop thermostat control from overwriting the forced output on its next update.
+            - climate.control:
+                id: gazebo_thermostat
+                mode: "OFF"
+            - output.set_level:
+                id: heater_pwm
+                level: 1.0
+            - lambda: 'id(heater_output_level) = 1.0;'
+      - if:
+          condition:
+            lambda: 'return id(heating_action) == 4;'  # Service Relay Pulse
+          then:
             - climate.control:
                 id: gazebo_thermostat
                 mode: "OFF"
@@ -316,6 +339,18 @@ interval:
                   # Use the switch action so its state and internal flags are
                   # cleared through the same path as a user request.
                   - switch.turn_off: manual_run
+
+  # Stop the service relay pulse after its fixed 15-minute limit.
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(service_pulse_active) &&
+                     (millis() - id(service_pulse_started_at) >= 15UL * 60UL * 1000UL);
+          then:
+            - logger.log: "Service relay pulse duration expired"
+            - switch.turn_off: service_relay_pulse
 
   # Periodic Display Refresh (every 5s)
   # Variable writes are disabled until the flashed TFT component map is confirmed.

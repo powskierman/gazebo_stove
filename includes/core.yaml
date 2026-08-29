@@ -17,9 +17,9 @@ esphome:
   on_boot:
     priority: 600
     then:
-      # Restore the persisted symmetric hysteresis setting before normal control.
+      # Restore the persisted asymmetric hysteresis setting before normal control.
       - lambda: |-
-          id(gazebo_thermostat).set_heat_deadband(id(heating_hysteresis).state);
+          id(gazebo_thermostat).set_heat_deadband(0.0f);
           id(gazebo_thermostat).set_heat_overrun(id(heating_hysteresis).state);
           id(manual_stop).publish_state(id(manual_stop_active));
       - if:

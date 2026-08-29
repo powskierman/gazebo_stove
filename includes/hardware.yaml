@@ -30,16 +30,17 @@ light:
 # ============================================================================
 # RELAY STATUS (GPIO12 controlled by thermostat via slow_pwm in climate.yaml)
 # ============================================================================
-# Note: The physical relay is now controlled by the slow_pwm output in climate.yaml
-# This template switch provides UI visibility and allows manual overrides
+# Normal operation is controlled by the ESPHome thermostat and priority logic.
+# This switch is an intentional, supervised direct-output control for service only.
 
 switch:
-  # Relay status display - reflects slow_pwm output state
-  # Note: Direct control is handled by the thermostat; this is for monitoring/override
+  # Service override - bypasses thermostat/priority logic to test GPIO12 directly.
+  # Keep it out of normal controls; use Manual Run or Force Off day-to-day.
   - platform: template
-    name: "Stove Relay"
+    name: "Stove Relay Service Override"
     id: relay
-    icon: "mdi:fire"
+    icon: "mdi:tools"
+    entity_category: diagnostic
     lambda: |-
       // Read state from the heater_output_level global
       return id(heater_output_level) > 0.5;
@@ -59,6 +60,41 @@ switch:
             id: heater_pwm
             level: 0.0
         - light.turn_off: status_light
+
+  # Fixed-duration direct relay test for supervised service work. This is kept
+  # separate from the normal Heat On timed override and is stopped by Force Off.
+  - platform: template
+    name: "Service Relay Pulse (15 min)"
+    id: service_relay_pulse
+    icon: "mdi:timer-outline"
+    entity_category: diagnostic
+    restore_mode: ALWAYS_OFF
+    assumed_state: false
+    lambda: |-
+      return id(service_pulse_active);
+    turn_on_action:
+      then:
+        - if:
+            condition:
+              lambda: 'return id(manual_stop_active);'
+            then:
+              - logger.log: "Service relay pulse rejected: Force Off is active."
+              - switch.turn_off: service_relay_pulse
+            else:
+              - lambda: |-
+                  id(service_pulse_active) = true;
+                  id(service_pulse_started_at) = millis();
+                  id(service_relay_pulse).publish_state(true);
+                  ESP_LOGW("SERVICE_PULSE", "15-minute service relay pulse started");
+              - script.execute: manage_heating
+    turn_off_action:
+      then:
+        - lambda: |-
+            id(service_pulse_active) = false;
+            id(service_pulse_started_at) = 0;
+            id(service_relay_pulse).publish_state(false);
+            ESP_LOGI("SERVICE_PULSE", "Service relay pulse stopped");
+        - script.execute: manage_heating
 
   # Manual Run Override (duration configured in Home Assistant)
   - platform: template
