@@ -17,6 +17,17 @@ esphome:
   on_boot:
     priority: 600
     then:
+      # Restore the persisted symmetric hysteresis setting before normal control.
+      - lambda: |-
+          id(gazebo_thermostat).set_heat_deadband(id(heating_hysteresis).state);
+          id(gazebo_thermostat).set_heat_overrun(id(heating_hysteresis).state);
+          id(manual_stop).publish_state(id(manual_stop_active));
+      - if:
+          condition:
+            lambda: 'return id(manual_stop_active);'
+          then:
+            - logger.log: "Force Off restored after restart"
+            - script.execute: manage_heating
       - logger.log: "GazeboWx starting up..."
       - wait_until:
           condition:

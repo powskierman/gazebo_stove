@@ -21,12 +21,9 @@ entities:
   - entity: sensor.gazebo_stove_gazebo_temperature
     name: Current Temperature
     icon: mdi:thermometer
-  - entity: number.gazebo_stove_desired_temperature
-    name: Desired Temperature
-    icon: mdi:thermometer-plus
-  - entity: switch.gazebo_stove_propane_stove_relay
-    name: Relay Status (Stove On/Off)
-    icon: mdi:fire
+  - entity: climate.gazebo_stove_gazebo_stove
+    name: Thermostat
+    icon: mdi:thermostat
   - type: divider
   - entity: select.gazebo_stove_presence_mode
     name: Current Mode (Home/Away)
@@ -35,30 +32,35 @@ entities:
     name: Heating Schedule
     icon: mdi:calendar-clock
   - type: divider
-  - entity: number.gazebo_stove_home_mode_time_hour
-    name: Home Mode Hour (0-23)
+  - entity: time.gazebo_stove_home_time_24h
+    name: Home Start Time
     icon: mdi:home-clock
-  - entity: number.gazebo_stove_home_mode_time_minute
-    name: Home Mode Minute (0-59)
-    icon: mdi:home-clock
-  - entity: number.gazebo_stove_away_mode_time_hour
-    name: Away Mode Hour (0-23)
-    icon: mdi:clock-out
-  - entity: number.gazebo_stove_away_mode_time_minute
-    name: Away Mode Minute (0-59)
+  - entity: time.gazebo_stove_away_time_24h
+    name: Away Start Time
     icon: mdi:clock-out
   - type: divider
   - entity: switch.gazebo_stove_manual_run
-    name: Emergency Heat (15 min)
+    name: Heat On (Timed Override)
     icon: mdi:fire-alert
+  - entity: number.gazebo_stove_manual_run_duration
+    name: Heat On Duration (1–60 min)
+    icon: mdi:timer
   - entity: switch.gazebo_stove_manual_stop
     name: Force Off (Highest Priority)
     icon: mdi:power-off
   - type: divider
-  - entity: number.gazebo_stove_temperature_offset
-    name: Temperature Offset (-10 to +10°C)
-    icon: mdi:pencil
+  - entity: number.gazebo_stove_heating_hysteresis
+    name: Heating Hysteresis
+    icon: mdi:arrow-expand-vertical
   - type: divider
+  - type: section
+    label: Advanced & Diagnostics
+  - entity: number.gazebo_stove_temperature_offset
+    name: DS18B20 Calibration Offset
+    icon: mdi:tune-vertical
+  - entity: sensor.gazebo_stove_wifi_signal_strength
+    name: WiFi Signal Strength
+    icon: mdi:wifi
   - entity: binary_sensor.gazebo_stove_sensor_malfunction
     name: Sensor Malfunction
     icon: mdi:alert-circle

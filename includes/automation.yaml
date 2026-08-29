@@ -159,10 +159,10 @@ script:
 
 
   # Manage heating with priority logic for Thermostat Controller
-  # PRIORITY ORDER: Force Off > Emergency Heat > Schedule > Thermostat
+  # PRIORITY ORDER: Force Off > Away Schedule > Emergency Heat > Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
-  # *** PRIORITY 2: Manual Run (Emergency Heat) - configurable timer, forces heat ON ***
-  # *** PRIORITY 3: Presence Mode (Schedule) - Away mode disables heating ***
+  # *** PRIORITY 2: Presence Mode (Schedule) - Away mode disables all heating ***
+  # *** PRIORITY 3: Manual Run (Emergency Heat) - configurable timer, Home only ***
   # *** PRIORITY 4 (LOWEST): Thermostat Controller - automatic temperature control ***
   - id: manage_heating
     then:
@@ -200,7 +200,15 @@ script:
             return;
           }
 
-          // Priority 2: Manual Run (Emergency Heat) - configurable timer
+          // Priority 2: Away is an absolute heat-off, including Manual Run.
+          if (schedule_standby) {
+            id(heating_status).publish_state("Schedule Standby");
+            id(heating_action) = 3;
+            ESP_LOGI("PRIORITY", "Schedule: Away mode - Standby (Priority 2)");
+            return;
+          }
+
+          // Priority 3: Manual Run (Emergency Heat) - configurable timer.
           if (manual_run_requested) {
             id(heating_status).publish_state("Emergency Heat");
 
@@ -213,16 +221,8 @@ script:
             uint32_t timeout_ms = (uint32_t) roundf(id(manual_run_duration).state * 60000.0f);
             uint32_t remaining_ms = elapsed < timeout_ms ? timeout_ms - elapsed : 0;
             id(heating_action) = 2;
-            ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 2)",
+            ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 3)",
                      (unsigned long) (remaining_ms / 60000));
-            return;
-          }
-
-          // Priority 3: Presence Mode (Schedule) - Home/Away based control
-          if (schedule_standby) {
-            id(heating_status).publish_state("Schedule Standby");
-            id(heating_action) = 3;
-            ESP_LOGI("PRIORITY", "Schedule: Away mode - Standby (Priority 3)");
             return;
           }
 

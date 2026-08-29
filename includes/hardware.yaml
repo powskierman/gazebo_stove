@@ -105,7 +105,8 @@ switch:
     name: "Manual Stop"
     id: manual_stop
     icon: "mdi:power-off"
-    restore_mode: ALWAYS_OFF
+    # State is supplied by the persisted manual_stop_active global.
+    restore_mode: DISABLED
     assumed_state: false
     lambda: |-
       return id(manual_stop_active);

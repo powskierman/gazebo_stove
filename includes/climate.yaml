@@ -32,8 +32,10 @@ climate:
     min_heating_off_time: 30s
     min_heating_run_time: 30s
     min_idle_time: 10s
-    heat_deadband: 1.0°C
-    heat_overrun: 1.0°C
+    # Both sides of the initial ±3°C thermostat band are made user-adjustable
+    # by number.heating_hysteresis at startup and on every change.
+    heat_deadband: 3.0°C
+    heat_overrun: 3.0°C
     heat_action:
       - output.set_level:
           id: heater_pwm
