@@ -185,6 +185,8 @@ switch:
     turn_on_action:
       then:
         - logger.log: "Schedule enabled - Automatic home/away switching"
+        - script.execute: evaluate_schedule
     turn_off_action:
       then:
         - logger.log: "Schedule disabled - Manual presence mode only"
+        - script.execute: manage_heating

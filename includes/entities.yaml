@@ -186,6 +186,9 @@ datetime:
     optimistic: yes
     initial_value: "06:00:00"
     restore_value: true
+    set_action:
+      then:
+        - script.execute: evaluate_schedule
 
   # Away Mode Start Time (24-hour format time picker)
   - platform: template
@@ -196,6 +199,9 @@ datetime:
     optimistic: yes
     initial_value: "22:00:00"
     restore_value: true
+    set_action:
+      then:
+        - script.execute: evaluate_schedule
 
 # ============================================================================
 # GLOBAL VARIABLES - Internal State Tracking

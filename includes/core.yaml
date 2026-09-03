@@ -118,3 +118,4 @@ time:
     on_time_sync:
       then:
         - logger.log: "Time synced from NTP"
+        - script.execute: evaluate_schedule
