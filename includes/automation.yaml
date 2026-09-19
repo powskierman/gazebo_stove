@@ -241,8 +241,17 @@ script:
           // Priority 5: Thermostat Controller - Let thermostat manage heating automatically
           id(heating_action) = 0;
           
-          // Update status based on thermostat output
-          if (pwm_output > 0.5) {
+          // Update status from the thermostat's ACTUAL current action
+          // (id(gazebo_thermostat).action), not the stale heater_output_level
+          // global. That global is only written by the slow_pwm turn_on/turn_off
+          // actions and is never reconciled when the schedule transitions
+          // (away -> home, or when the schedule is enabled), so it keeps holding
+          // the previous cycle's output level. As a result the display flips to
+          // "Heating" while the relay is actually off and the stove is idle.
+          // Reading the thermostat's action keeps the label aligned with its
+          // normal automatic demand. Priority overrides can directly control
+          // the PWM output, so they publish their own status above.
+          if (id(gazebo_thermostat).action == climate::CLIMATE_ACTION_HEATING) {
             id(heating_status).publish_state("Heating");
           } else {
             id(heating_status).publish_state("Idle");
@@ -302,8 +311,7 @@ script:
             - climate.control:
                 id: gazebo_thermostat
                 mode: "HEAT"
-                preset: Home
-            - logger.log: "Thermostat: Restoring HEAT mode (Priority 4)"
+            - logger.log: "Thermostat: Restoring HEAT mode while retaining target (Priority 5)"
             - component.update: gazebo_temp
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
