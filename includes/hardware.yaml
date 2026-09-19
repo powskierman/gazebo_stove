@@ -34,32 +34,36 @@ light:
 # This switch is an intentional, supervised direct-output control for service only.
 
 switch:
-  # Service override - bypasses thermostat/priority logic to test GPIO12 directly.
-  # Keep it out of normal controls; use Manual Run or Force Off day-to-day.
+  # Service override is routed through the output arbiter. It can request heat
+  # for supervised diagnostics but cannot bypass Force Off or a sensor fault.
   - platform: template
     name: "Stove Relay Service Override"
     id: relay
     icon: "mdi:tools"
     entity_category: diagnostic
     lambda: |-
-      // Read state from the heater_output_level global
-      return id(heater_output_level) > 0.5;
+      return id(service_relay_override_active);
     turn_on_action:
       then:
-        - logger.log: "Relay forced ON via UI"
-        - lambda: 'id(heater_output_level) = 1.0;'
-        - output.set_level:
-            id: heater_pwm
-            level: 1.0
-        - light.turn_on: status_light
+        - if:
+            condition:
+              lambda: 'return id(manual_stop_active);'
+            then:
+              - logger.log: "Service relay override rejected: Force Off is active."
+              - switch.turn_off: relay
+            else:
+              - lambda: |-
+                  id(service_relay_override_active) = true;
+                  id(relay).publish_state(true);
+              - logger.log: "Service relay override requested via UI"
+              - script.execute: manage_heating
     turn_off_action:
       then:
-        - logger.log: "Relay forced OFF via UI"
-        - lambda: 'id(heater_output_level) = 0.0;'
-        - output.set_level:
-            id: heater_pwm
-            level: 0.0
-        - light.turn_off: status_light
+        - lambda: |-
+            id(service_relay_override_active) = false;
+            id(relay).publish_state(false);
+        - logger.log: "Service relay override cleared via UI"
+        - script.execute: manage_heating
 
   # Fixed-duration direct relay test for supervised service work. This is kept
   # separate from the normal Heat On timed override and is stopped by Force Off.
@@ -160,11 +164,9 @@ switch:
             }
             ESP_LOGI("MANUAL_STOP", "Enabled - Relay OFF indefinitely");
             id(manual_stop).publish_state(true);
-        # Force heater off via PWM output
-        - output.set_level:
-            id: heater_pwm
-            level: 0.0
-        - light.turn_off: status_light
+        # Immediate safety request through the sole GPIO12 output arbiter.
+        - lambda: 'id(effective_heat_request) = false;'
+        - script.execute: apply_heating_output
         - script.execute: update_relay_state
     turn_off_action:
       then:

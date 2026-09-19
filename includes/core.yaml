@@ -22,12 +22,15 @@ esphome:
           id(gazebo_thermostat).set_heat_deadband(0.0f);
           id(gazebo_thermostat).set_heat_overrun(id(heating_hysteresis).state);
           id(manual_stop).publish_state(id(manual_stop_active));
+          id(presence_away_active) = (id(presence_mode).state == "away");
+          id(thermostat_heat_demand) =
+              (id(gazebo_thermostat).action == climate::CLIMATE_ACTION_HEATING);
       - if:
           condition:
             lambda: 'return id(manual_stop_active);'
           then:
             - logger.log: "Force Off restored after restart"
-            - script.execute: manage_heating
+      - script.execute: manage_heating
       - logger.log: "GazeboWx starting up..."
       - wait_until:
           condition:

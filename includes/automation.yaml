@@ -158,6 +158,23 @@ script:
 
 
 
+  # The only writer to heater_pwm. Every thermostat action and every override
+  # first records its request, then this arbiter applies the highest priority.
+  - id: apply_heating_output
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(effective_heat_request);'
+          then:
+            - output.set_level:
+                id: heater_pwm
+                level: 1.0
+          else:
+            - output.set_level:
+                id: heater_pwm
+                level: 0.0
+
   # Manage heating with priority logic for Thermostat Controller
   # PRIORITY ORDER: Force Off > Sensor Fault > Service Pulse > Away Schedule > Emergency Heat > Thermostat
   # *** PRIORITY 1 (HIGHEST): Manual Stop (Force Off) - disables ALL heating ***
@@ -169,19 +186,22 @@ script:
     then:
       # Check priorities and set action flags
       - lambda: |-
-          bool schedule_standby = (id(presence_mode).state.compare("away") == 0);
+          bool schedule_standby = id(presence_away_active);
           bool manual_stop = id(manual_stop_active);
           bool service_pulse_requested = id(service_pulse_active);
+          bool service_override_requested = id(service_relay_override_active);
           bool manual_run_requested = id(manual_run_active);
           bool sensor_fault = id(sensor_malfunction).state || isnan(id(gazebo_temp).state) || id(gazebo_temp).state <= -39.0;
           float pwm_output = id(heater_output_level);
 
-          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, ServicePulse=%s, EmergencyHeat=%s, ScheduleStandby=%s, Heater_Output=%.1f%%",
+          ESP_LOGI("PRIORITY", "Inputs: ForceOff=%s, SensorFault=%s, ServicePulse=%s, ServiceOverride=%s, EmergencyHeat=%s, ScheduleStandby=%s, ThermostatDemand=%s, Heater_Output=%.1f%%",
                    manual_stop ? "true" : "false",
                    sensor_fault ? "true" : "false",
                    service_pulse_requested ? "true" : "false",
+                   service_override_requested ? "true" : "false",
                    manual_run_requested ? "true" : "false",
                    schedule_standby ? "YES" : "NO",
+                   id(thermostat_heat_demand) ? "true" : "false",
                    pwm_output * 100.0);
 
           // Determine action based on priority
@@ -191,6 +211,7 @@ script:
           if (manual_stop) {
             id(heating_status).publish_state("Forced Off");
             id(heating_action) = 1;
+            id(effective_heat_request) = false;
             ESP_LOGI("PRIORITY", "Force Off active (Priority 1 - HIGHEST)");
             return;
           }
@@ -199,6 +220,7 @@ script:
           if (sensor_fault) {
             id(heating_status).publish_state("Sensor Fault");
             id(heating_action) = 1;
+            id(effective_heat_request) = false;
             ESP_LOGW("PRIORITY", "Sensor fault active - forcing heat OFF");
             return;
           }
@@ -208,7 +230,17 @@ script:
           if (service_pulse_requested) {
             id(heating_status).publish_state("Service Relay Pulse");
             id(heating_action) = 4;
+            id(effective_heat_request) = true;
             ESP_LOGW("PRIORITY", "Service relay pulse active (Priority 2)");
+            return;
+          }
+
+          // Priority 2: explicit supervised service override.
+          if (service_override_requested) {
+            id(heating_status).publish_state("Service Relay Override");
+            id(heating_action) = 4;
+            id(effective_heat_request) = true;
+            ESP_LOGW("PRIORITY", "Service relay override active (Priority 2)");
             return;
           }
 
@@ -216,7 +248,8 @@ script:
           if (schedule_standby) {
             id(heating_status).publish_state("Schedule Standby");
             id(heating_action) = 3;
-            ESP_LOGI("PRIORITY", "Schedule: Away mode - Standby (Priority 2)");
+            id(effective_heat_request) = false;
+            ESP_LOGI("PRIORITY", "Schedule: Away mode - Standby (Priority 3)");
             return;
           }
 
@@ -233,6 +266,7 @@ script:
             uint32_t timeout_ms = (uint32_t) roundf(id(manual_run_duration).state * 60000.0f);
             uint32_t remaining_ms = elapsed < timeout_ms ? timeout_ms - elapsed : 0;
             id(heating_action) = 2;
+            id(effective_heat_request) = true;
             ESP_LOGI("PRIORITY", "Emergency Heat: %lu min remaining (Priority 4)",
                      (unsigned long) (remaining_ms / 60000));
             return;
@@ -241,78 +275,23 @@ script:
           // Priority 5: Thermostat Controller - Let thermostat manage heating automatically
           id(heating_action) = 0;
           
-          // Update status from the thermostat's ACTUAL current action
-          // (id(gazebo_thermostat).action), not the stale heater_output_level
-          // global. That global is only written by the slow_pwm turn_on/turn_off
-          // actions and is never reconciled when the schedule transitions
-          // (away -> home, or when the schedule is enabled), so it keeps holding
-          // the previous cycle's output level. As a result the display flips to
-          // "Heating" while the relay is actually off and the stove is idle.
-          // Reading the thermostat's action keeps the label aligned with its
-          // normal automatic demand. Priority overrides can directly control
-          // the PWM output, so they publish their own status above.
-          if (id(gazebo_thermostat).action == climate::CLIMATE_ACTION_HEATING) {
+          // Thermostat actions update thermostat_heat_demand. The arbiter uses
+          // that demand only when no higher-priority lockout or override exists.
+          id(effective_heat_request) = id(thermostat_heat_demand);
+          if (id(thermostat_heat_demand)) {
             id(heating_status).publish_state("Heating");
           } else {
             id(heating_status).publish_state("Idle");
           }
           
-          ESP_LOGI("THERMOSTAT", "Current: %.1f°C, Target: %.1f°C, Output: %.0f%%",
+          ESP_LOGI("THERMOSTAT", "Current: %.1f°C, Target: %.1f°C, Demand=%s, RequestedOutput=%s, ActualOutput=%.0f%%",
                    id(gazebo_temp).state,
                    id(gazebo_thermostat).target_temperature,
+                   id(thermostat_heat_demand) ? "HEATING" : "IDLE",
+                   id(effective_heat_request) ? "ON" : "OFF",
                    pwm_output * 100.0);
       
-      # Execute action based on heating_action value
-      - if:
-          condition:
-            lambda: 'return id(heating_action) == 1;'  # Force Off
-          then:
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "OFF"
-            - output.set_level:
-                id: heater_pwm
-                level: 0.0
-            - lambda: 'id(heater_output_level) = 0.0;'
-      - if:
-          condition:
-            lambda: 'return id(heating_action) == 2;'  # Emergency Heat
-          then:
-            # Stop thermostat control from overwriting the forced output on its next update.
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "OFF"
-            - output.set_level:
-                id: heater_pwm
-                level: 1.0
-            - lambda: 'id(heater_output_level) = 1.0;'
-      - if:
-          condition:
-            lambda: 'return id(heating_action) == 4;'  # Service Relay Pulse
-          then:
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "OFF"
-            - output.set_level:
-                id: heater_pwm
-                level: 1.0
-            - lambda: 'id(heater_output_level) = 1.0;'
-      - if:
-          condition:
-            lambda: 'return id(heating_action) == 3;'  # Standby
-          then:
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "OFF"
-      - if:
-          condition:
-            lambda: 'return id(heating_action) == 0 && id(gazebo_thermostat).mode == climate::CLIMATE_MODE_OFF;'
-          then:
-            - climate.control:
-                id: gazebo_thermostat
-                mode: "HEAT"
-            - logger.log: "Thermostat: Restoring HEAT mode while retaining target (Priority 5)"
-            - component.update: gazebo_temp
+      - script.execute: apply_heating_output
 
   # Update relay state (used by manual overrides to trigger priority re-evaluation)
   - id: update_relay_state

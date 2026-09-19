@@ -24,9 +24,10 @@ button:
     entity_category: "diagnostic"
     on_press:
       then:
-        - output.set_level:
-            id: heater_pwm
-            level: 0.0
+        - lambda: |-
+            id(thermostat_heat_demand) = false;
+            id(effective_heat_request) = false;
+        - script.execute: apply_heating_output
         - logger.log: "Safe shutdown: Heater deactivated"
         - delay: 1s
         - button.press: restart_button

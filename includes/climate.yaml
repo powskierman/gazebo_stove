@@ -37,23 +37,14 @@ climate:
     heat_deadband: 0.0°C
     heat_overrun: 1.0°C
     heat_action:
-      - output.set_level:
-          id: heater_pwm
-          level: 1.0
-      - lambda: 'id(heater_output_level) = 1.0;'
-      - light.turn_on: status_light
+      - lambda: 'id(thermostat_heat_demand) = true;'
+      - script.execute: manage_heating
     idle_action:
-      - output.set_level:
-          id: heater_pwm
-          level: 0.0
-      - lambda: 'id(heater_output_level) = 0.0;'
-      - light.turn_off: status_light
+      - lambda: 'id(thermostat_heat_demand) = false;'
+      - script.execute: manage_heating
     off_mode:
-      - output.set_level:
-          id: heater_pwm
-          level: 0.0
-      - lambda: 'id(heater_output_level) = 0.0;'
-      - light.turn_off: status_light
+      - lambda: 'id(thermostat_heat_demand) = false;'
+      - script.execute: manage_heating
     default_preset: Home
     preset:
       - name: Home

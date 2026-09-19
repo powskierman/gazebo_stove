@@ -104,6 +104,10 @@ select:
         - logger.log:
             format: "Presence mode set to: %s"
             args: ["x.c_str()"]
+        # Template-select set_action runs before optimistic state publication.
+        # Keep a committed control value for manage_heating so an away -> home
+        # transition cannot be evaluated against the previous "away" state.
+        - lambda: 'id(presence_away_active) = (x == "away");'
         # Sync Thermostat Preset and Mode with Presence Mode
         - if:
             condition:
@@ -247,6 +251,29 @@ globals:
     type: uint32_t
     restore_value: no
     initial_value: '0'
+
+  # Service override is a supervised request to the output arbiter. It is not
+  # a direct GPIO bypass, so Force Off and sensor-fault protections still win.
+  - id: service_relay_override_active
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  # Controller state used by the single output arbiter.
+  - id: presence_away_active
+    type: bool
+    restore_value: yes
+    initial_value: 'false'
+
+  - id: thermostat_heat_demand
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+
+  - id: effective_heat_request
+    type: bool
+    restore_value: no
+    initial_value: 'false'
 
   # Nextion Slider0 value tracker (HMI range 15-25°C)
   - id: nextion_slider_value
